@@ -12,7 +12,7 @@
     :root {
       --bg: #070b14;
       --card-bg: #0e1526;
-      --card-inner: #141d33;
+      --card-inner: #131c33;
       --border: #1a2744;
       --border-light: #253861;
       --text: #f8fafc;
@@ -28,7 +28,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'JetBrains Mono', monospace; }
     body { background-color: var(--bg); color: var(--text); padding: 18px 24px 30px; -webkit-font-smoothing: antialiased; }
 
-    /* Top Navigation */
+    /* Header Bar */
     header {
       display: flex; justify-content: space-between; align-items: center;
       padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 18px;
@@ -71,7 +71,7 @@
     .alert-title { font-weight: 800; font-size: 13px; color: var(--red); }
     .alert-desc { font-size: 12px; color: #fca5a5; margin-top: 2px; }
 
-    /* Grid Layouts */
+    /* Grid Setup */
     .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
     
     .card {
@@ -96,10 +96,9 @@
       display: flex; justify-content: space-between; align-items: center;
     }
 
-    /* Main Bottom Grid */
+    /* Layout Columns */
     .bottom-layout { display: grid; grid-template-columns: 2.1fr 1fr; gap: 16px; }
 
-    /* Chart Section */
     .chart-container {
       background: var(--card-bg); border: 1px solid var(--border);
       border-radius: 10px; padding: 20px; display: flex; flex-direction: column;
@@ -184,18 +183,18 @@
     </div>
   </header>
 
-  <!-- Live Warning Banner (Only Shows if Alert Threshold Exceeded) -->
+  <!-- Live Warning Banner -->
   <div class="alert-banner" id="alertBanner">
     <div class="alert-left">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
       <div>
-        <div class="alert-title" id="alertTitle">HIGH RESOURCE USAGE DETECTED</div>
-        <div class="alert-desc" id="alertDesc">Host CPU load exceeded 85% normal operational envelope.</div>
+        <div class="alert-title" id="alertTitle">CONCURRENT SESSIONS NEAR CAPACITY</div>
+        <div class="alert-desc" id="alertDesc">User licenses utilized past threshold.</div>
       </div>
     </div>
   </div>
 
-  <!-- Row 1: Primary Real Telemetry Cards -->
+  <!-- Row 1: Primary Metrics -->
   <div class="grid-4">
     <!-- Active Sessions -->
     <div class="card">
@@ -218,7 +217,7 @@
       </div>
     </div>
 
-    <!-- Real CPU Load -->
+    <!-- Host CPU Utilization -->
     <div class="card">
       <div class="card-top">
         <span class="card-label">Host CPU Utilization</span>
@@ -238,10 +237,10 @@
       </div>
     </div>
 
-    <!-- Real Host Memory Usage -->
+    <!-- Host RAM Allocation -->
     <div class="card">
       <div class="card-top">
-        <span class="card-label">Host Memory Usage</span>
+        <span class="card-label">Host RAM Allocation</span>
         <div class="card-icon" style="color:var(--purple)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h.01M10 12h.01M14 12h.01M18 12h.01"/></svg>
         </div>
@@ -258,7 +257,7 @@
       </div>
     </div>
 
-    <!-- Disk Storage Allocation -->
+    <!-- Disk Storage Usage -->
     <div class="card">
       <div class="card-top">
         <span class="card-label">Disk Storage Usage</span>
@@ -279,14 +278,13 @@
     </div>
   </div>
 
-  <!-- Row 2: Live Trend Chart & Real Databases List -->
+  <!-- Row 2: Graph & Databases -->
   <div class="bottom-layout">
-    <!-- Live Multi-Axis Chart -->
     <div class="chart-container">
       <div class="chart-header">
         <div class="chart-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-          Live FMS Operational Telemetry
+          Live FM Server Operational Telemetry
         </div>
         <div class="chart-legend">
           <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span> CPU Load (%)</div>
@@ -299,7 +297,6 @@
       </div>
     </div>
 
-    <!-- Real Hosted Databases List -->
     <div class="db-container">
       <div class="db-header">
         <div class="db-title">
@@ -310,20 +307,18 @@
       </div>
       <div class="db-list" id="dbList">
         <div style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-size: 12px;">
-          Listening for live Admin API database catalog...
+          Connecting to Admin API file catalog...
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // Live Clock Display
     setInterval(() => {
       const now = new Date();
       document.getElementById('clockTime').innerText = now.toTimeString().split(' ')[0] + ' UTC';
     }, 1000);
 
-    // Initialize Chart.js
     const ctx = document.getElementById('perfChart').getContext('2d');
     const perfChart = new Chart(ctx, {
       type: 'line',
@@ -388,11 +383,9 @@
       }
     });
 
-    // Render Data into DOM
     function renderTelemetry(data) {
       if (!data) return;
 
-      // Header states
       if (data.engineStatus) {
         document.getElementById('dbEngineState').innerText = data.engineStatus.dbEngine || 'RUNNING';
         document.getElementById('wpeState').innerText = data.engineStatus.webPublishing || 'RUNNING';
@@ -400,20 +393,19 @@
       }
 
       if (data.timestamp) {
-        const timeStr = new Date(data.timestamp).toTimeString().split(' ')[0];
-        document.getElementById('syncTimestamp').innerText = timeStr;
+        document.getElementById('syncTimestamp').innerText = new Date(data.timestamp).toTimeString().split(' ')[0];
       }
 
-      // 1. Sessions
+      // Sessions
       const totalClients = data.clients?.total ?? 0;
       const maxAllowed = data.clients?.maxAllowed ?? 10;
       document.getElementById('sessionCount').innerHTML = `${totalClients} <span style="font-size:16px; color:var(--text-muted); font-weight:500;">/ ${maxAllowed}</span>`;
       document.getElementById('sessionBar').style.width = `${Math.min(100, (totalClients / maxAllowed) * 100)}%`;
       document.getElementById('wdCount').innerText = data.clients?.webDirect ?? 0;
-      document.getElementById('proCount').innerText = data.clients?.proGo ?? 0;
+      document.getElementById('proCount').innerText = data.clients?.pro ?? 0;
       document.getElementById('apiCount').innerText = data.clients?.api ?? 0;
 
-      // 2. CPU
+      // CPU
       const cpu = data.metrics?.cpuPercent ?? 0;
       document.getElementById('cpuVal').innerText = `${cpu.toFixed(1)}%`;
       document.getElementById('cpuBar').style.width = `${cpu}%`;
@@ -422,17 +414,21 @@
       document.getElementById('cpuStatus').innerText = isCpuHigh ? 'HEAVY LOAD' : 'HEALTHY';
       document.getElementById('cpuStatus').style.color = isCpuHigh ? 'var(--red)' : 'var(--green)';
 
-      // Alert Banner logic
+      // Alert Banner
       const banner = document.getElementById('alertBanner');
-      if (isCpuHigh) {
+      if (totalClients >= 9) {
         banner.classList.add('active');
-        document.getElementById('alertTitle').innerText = `HIGH CPU LOAD DETECTED: ${cpu.toFixed(1)}%`;
-        document.getElementById('alertDesc').innerText = "FileMaker Server engine CPU utilization exceeded 85% normal threshold.";
+        document.getElementById('alertTitle').innerText = "CONCURRENT LICENSES NEARING CEILING: " + totalClients + "/10";
+        document.getElementById('alertDesc').innerText = "WebDirect and Pro sessions have consumed 90%+ of licensed capacity.";
+      } else if (isCpuHigh) {
+        banner.classList.add('active');
+        document.getElementById('alertTitle').innerText = "HIGH CPU LOAD: " + cpu.toFixed(1) + "%";
+        document.getElementById('alertDesc').innerText = "Database engine thread processing is operating above threshold.";
       } else {
         banner.classList.remove('active');
       }
 
-      // 3. RAM
+      // RAM
       const ramUsed = data.metrics?.ramUsedGB ?? 0;
       const ramTotal = data.metrics?.ramTotalGB ?? 64;
       const ramPct = data.metrics?.ramPercent ?? Math.round((ramUsed / ramTotal) * 100);
@@ -441,7 +437,7 @@
       document.getElementById('ramCapacity').innerText = `Capacity: ${ramTotal} GB`;
       document.getElementById('ramPct').innerText = `${ramPct}%`;
 
-      // 4. Disk Storage
+      // Disk
       const diskUsed = data.metrics?.diskUsedGB ?? 0;
       const diskFree = data.metrics?.diskFreeGB ?? 0;
       const diskPct = data.metrics?.diskUsagePercent ?? 0;
@@ -450,7 +446,7 @@
       document.getElementById('diskFree').innerText = `Free: ${diskFree} GB`;
       document.getElementById('diskPct').innerText = `${diskPct}%`;
 
-      // 5. Database List
+      // Databases
       const dbs = data.databases?.list || [];
       document.getElementById('dbCountBadge').innerText = `${dbs.length} Files`;
       if (dbs.length > 0) {
@@ -468,9 +464,9 @@
         `).join('');
       }
 
-      // 6. Update Chart Data
+      // Chart Update
       const labelTime = new Date().toTimeString().split(' ')[0];
-      if (perfChart.data.labels.length > 15) {
+      if (perfChart.data.labels.length > 20) {
         perfChart.data.labels.shift();
         perfChart.data.datasets[0].data.shift();
         perfChart.data.datasets[1].data.shift();
@@ -483,7 +479,7 @@
       perfChart.update();
     }
 
-    // Immediate Poll from ntfy topic on load
+    // Direct ntfy Cache Poll on Load
     fetch('https://ntfy.sh/masterbom_fms_monitor_hitachi/json?poll=1')
       .then(res => res.text())
       .then(text => {
@@ -500,7 +496,7 @@
       })
       .catch(console.error);
 
-    // Live Server-Sent Events stream
+    // Live Event Stream
     const eventSource = new EventSource('https://ntfy.sh/masterbom_fms_monitor_hitachi/sse');
     eventSource.onmessage = function(event) {
       try {
@@ -509,7 +505,7 @@
           renderTelemetry(JSON.parse(payload.message));
         }
       } catch (err) {
-        console.error("SSE stream error:", err);
+        console.error("SSE parse error:", err);
       }
     };
   </script>
