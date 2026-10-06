@@ -851,5 +851,25 @@
             addLogEvent('INFO', 'n8n & FileMaker WebViewer update bridge active on window.updateMetrics()');
         };
     </script>
+    <script>
+  // Connect to n8n push channel via Server-Sent Events (SSE)
+  const eventSource = new EventSource('https://ntfy.sh/masterbom_fms_monitor_hitachi/sse');
+  
+  eventSource.onmessage = (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      if (payload.message) {
+        const metricsData = JSON.parse(payload.message);
+        
+        // Pass metrics directly to the dashboard
+        if (window.updateMetrics) {
+          window.updateMetrics(metricsData);
+        }
+      }
+    } catch (e) {
+      console.log('Stream error:', e);
+    }
+  };
+</script>
 </body>
 </html>
