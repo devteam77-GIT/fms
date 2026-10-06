@@ -3,218 +3,513 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FMS Ops Center | hitachi.master-bom.com</title>
+  <title>FMS OPS CENTER | hitachi.master-bom.com</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
-      --bg: #090d16;
-      --card-bg: #111726;
-      --border: #1e293b;
-      --text: #f1f5f9;
-      --text-muted: #94a3b8;
-      --accent: #38bdf8;
+      --bg: #070b14;
+      --card-bg: #0e1526;
+      --card-inner: #141d33;
+      --border: #1a2744;
+      --border-light: #253861;
+      --text: #f8fafc;
+      --text-muted: #64748b;
+      --accent: #00d2ff;
+      --blue: #3b82f6;
       --green: #10b981;
       --yellow: #f59e0b;
       --red: #ef4444;
-      --purple: #a855f7;
+      --purple: #8b5cf6;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'JetBrains Mono', monospace; }
-    body { background-color: var(--bg); color: var(--text); padding: 24px; }
-    
+    body { background-color: var(--bg); color: var(--text); padding: 18px 24px 30px; -webkit-font-smoothing: antialiased; }
+
+    /* Top Navigation */
     header {
       display: flex; justify-content: space-between; align-items: center;
-      padding-bottom: 20px; border-bottom: 1px solid var(--border); margin-bottom: 24px;
+      padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 18px;
     }
-    .brand h1 { font-size: 22px; font-weight: 800; letter-spacing: 0.5px; }
-    .brand p { font-size: 13px; color: var(--accent); margin-top: 4px; }
-    .status-pill {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 6px 14px; background: rgba(16, 185, 129, 0.1);
-      border: 1px solid var(--green); border-radius: 9999px;
-      font-size: 12px; color: var(--green);
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo-box {
+      width: 38px; height: 38px; background: linear-gradient(135deg, #0284c7, #00d2ff);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.35);
     }
-    .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: blink 1.5s infinite; }
-    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .brand-title { font-size: 20px; font-weight: 800; letter-spacing: 0.5px; }
+    .host-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; background: #0b172d; border: 1px solid var(--border-light);
+      border-radius: 6px; font-size: 12px; color: var(--accent); margin-left: 8px;
+    }
+    .dot-green { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
 
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .header-badges { display: flex; align-items: center; gap: 10px; }
+    .engine-pill {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+      border-radius: 6px; font-size: 11px; font-weight: 600; background: #0c1424; border: 1px solid var(--border);
+    }
+    .engine-pill .label { color: var(--text-muted); }
+    .engine-pill .val { color: var(--green); font-weight: 700; }
+
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .clock-block { text-align: right; }
+    .clock-time { font-size: 16px; font-weight: 800; }
+    .clock-sync { font-size: 11px; color: var(--text-muted); }
+
+    /* Alert Banner */
+    .alert-banner {
+      display: none; align-items: center; justify-content: space-between;
+      background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.4);
+      padding: 12px 18px; border-radius: 10px; margin-bottom: 18px;
+    }
+    .alert-banner.active { display: flex; }
+    .alert-left { display: flex; align-items: center; gap: 12px; }
+    .alert-title { font-weight: 800; font-size: 13px; color: var(--red); }
+    .alert-desc { font-size: 12px; color: #fca5a5; margin-top: 2px; }
+
+    /* Grid Layouts */
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+    
     .card {
       background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 12px; padding: 20px; position: relative;
+      border-radius: 10px; padding: 18px; position: relative; display: flex;
+      flex-direction: column; justify-content: space-between; min-height: 140px;
     }
-    .card-title { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; }
-    .card-val { font-size: 32px; font-weight: 700; margin: 12px 0 6px 0; }
-    .card-sub { font-size: 12px; color: var(--text-muted); display: flex; justify-content: space-between; }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .card-label { font-size: 10.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; }
+    .card-icon {
+      width: 32px; height: 32px; border-radius: 8px; background: #131d36;
+      display: flex; align-items: center; justify-content: center; border: 1px solid var(--border);
+    }
+    .card-icon svg { width: 16px; height: 16px; }
 
-    .progress-bar { width: 100%; height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden; margin-top: 10px; }
-    .progress-fill { height: 100%; transition: width 0.4s ease; }
+    .card-val { font-size: 30px; font-weight: 800; margin: 10px 0 6px; letter-spacing: -0.5px; }
+    .progress-track { width: 100%; height: 5px; background: #141c30; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+    .progress-bar { height: 100%; transition: width 0.4s ease; border-radius: 3px; }
 
-    /* Databases list table */
-    .db-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
-    .db-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .db-header h2 { font-size: 16px; font-weight: 700; }
-    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
-    th { color: var(--text-muted); font-size: 11px; text-transform: uppercase; padding: 12px 16px; border-bottom: 1px solid var(--border); }
-    td { padding: 14px 16px; border-bottom: 1px solid #162032; }
-    .badge {
-      display: inline-block; padding: 3px 8px; border-radius: 4px;
-      font-size: 11px; font-weight: 700; background: rgba(16, 185, 129, 0.15); color: var(--green);
+    .card-foot {
+      margin-top: 12px; font-size: 11.5px; color: var(--text-muted);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    /* Main Bottom Grid */
+    .bottom-layout { display: grid; grid-template-columns: 2.1fr 1fr; gap: 16px; }
+
+    /* Chart Section */
+    .chart-container {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 20px; display: flex; flex-direction: column;
+    }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .chart-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .chart-legend { display: flex; gap: 14px; font-size: 11px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    /* Databases Table */
+    .db-container {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 18px; display: flex; flex-direction: column;
+    }
+    .db-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .db-title { font-size: 13.5px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .db-count { font-size: 11px; padding: 2px 8px; background: #141c30; border-radius: 4px; color: var(--accent); }
+
+    .db-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; max-height: 290px; }
+    .db-row {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--card-inner); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px;
+    }
+    .db-file-info { display: flex; align-items: center; gap: 10px; }
+    .db-icon { color: var(--text-muted); }
+    .db-name { font-size: 12.5px; font-weight: 700; color: #fff; }
+    .db-meta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .badge-normal {
+      font-size: 10px; font-weight: 700; padding: 3px 8px;
+      border-radius: 4px; background: rgba(16, 185, 129, 0.15); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    @media (max-width: 1200px) {
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .bottom-layout { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 
+  <!-- Top Header Navigation -->
   <header>
-    <div class="brand">
-      <h1>FMS OPS CENTER</h1>
-      <p id="serverHost">hitachi.master-bom.com</p>
+    <div class="header-left">
+      <div class="logo-box">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+        </svg>
+      </div>
+      <div>
+        <div style="display:flex; align-items:center;">
+          <span class="brand-title">FMS OPS CENTER</span>
+          <span class="host-badge"><span class="dot-green"></span> hitachi.master-bom.com</span>
+        </div>
+      </div>
     </div>
-    <div class="status-pill">
-      <div class="pulse"></div>
-      <span id="syncStatus">STREAMING LIVE</span>
+
+    <!-- Live Operational Engine Badges -->
+    <div class="header-badges">
+      <div class="engine-pill">
+        <span class="label">DB ENGINE</span>
+        <span class="val" id="dbEngineState">RUNNING</span>
+      </div>
+      <div class="engine-pill">
+        <span class="label">WEB PUBLISHING</span>
+        <span class="val" id="wpeState">RUNNING</span>
+      </div>
+      <div class="engine-pill">
+        <span class="label">DATA API / N8N</span>
+        <span class="val" id="dapiState" style="color:var(--accent)">ACTIVE</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="clock-block">
+        <div class="clock-time" id="clockTime">--:--:-- UTC</div>
+        <div class="clock-sync">Last Sync: <span id="syncTimestamp">Connecting...</span></div>
+      </div>
     </div>
   </header>
 
-  <!-- Metric Overview Cards -->
-  <div class="grid">
-    <!-- Active Sessions -->
-    <div class="card">
-      <div class="card-title">Active Concurrent Sessions</div>
-      <div class="card-val" id="sessionCount">0 / 10</div>
-      <div class="progress-bar">
-        <div class="progress-fill" id="sessionBar" style="width: 0%; background: var(--accent);"></div>
-      </div>
-      <div class="card-sub" style="margin-top: 10px;">
-        <span>WebDirect: <strong id="wdCount" style="color:var(--yellow)">0</strong></span>
-        <span>Pro / Go: <strong id="proCount" style="color:var(--accent)">0</strong></span>
-        <span>API: <strong id="apiCount">0</strong></span>
-      </div>
-    </div>
-
-    <!-- Real CPU -->
-    <div class="card">
-      <div class="card-title">Host CPU Utilization</div>
-      <div class="card-val" id="cpuVal">0.0%</div>
-      <div class="progress-bar">
-        <div class="progress-fill" id="cpuBar" style="width: 0%; background: var(--accent);"></div>
-      </div>
-      <div class="card-sub" style="margin-top: 10px;">
-        <span>Status</span>
-        <span id="cpuStatus" style="color: var(--green);">Normal</span>
-      </div>
-    </div>
-
-    <!-- Real Memory Usage -->
-    <div class="card">
-      <div class="card-title">Host Memory Usage</div>
-      <div class="card-val" id="ramVal">0.0 GB</div>
-      <div class="progress-bar">
-        <div class="progress-fill" id="ramBar" style="width: 0%; background: var(--purple);"></div>
-      </div>
-      <div class="card-sub" style="margin-top: 10px;">
-        <span id="ramPercentText">0% Used</span>
-        <span id="ramTotalText">Capacity: 64 GB</span>
-      </div>
-    </div>
-
-    <!-- Disk Storage -->
-    <div class="card">
-      <div class="card-title">Storage / Database Allocation</div>
-      <div class="card-val" id="diskVal">0.0 GB</div>
-      <div class="progress-bar">
-        <div class="progress-fill" id="diskBar" style="width: 0%; background: var(--green);"></div>
-      </div>
-      <div class="card-sub" style="margin-top: 10px;">
-        <span id="diskSub">Real Total from DBs</span>
-        <span id="fmsVersionBadge">FMS 21/22</span>
+  <!-- Live Warning Banner (Only Shows if Alert Threshold Exceeded) -->
+  <div class="alert-banner" id="alertBanner">
+    <div class="alert-left">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      <div>
+        <div class="alert-title" id="alertTitle">HIGH RESOURCE USAGE DETECTED</div>
+        <div class="alert-desc" id="alertDesc">Host CPU load exceeded 85% normal operational envelope.</div>
       </div>
     </div>
   </div>
 
-  <!-- Real Hosted Databases Table -->
-  <div class="db-container">
-    <div class="db-header">
-      <h2>Hosted Databases (Live Admin API)</h2>
-      <span id="dbTotalBadge" style="font-size: 12px; color: var(--accent);">0 Files Mounted</span>
+  <!-- Row 1: Primary Real Telemetry Cards -->
+  <div class="grid-4">
+    <!-- Active Sessions -->
+    <div class="card">
+      <div class="card-top">
+        <span class="card-label">Active Sessions</span>
+        <div class="card-icon" style="color:var(--yellow)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </div>
+      </div>
+      <div>
+        <div class="card-val" id="sessionCount">0 <span style="font-size:16px; color:var(--text-muted); font-weight:500;">/ 10</span></div>
+        <div class="progress-track">
+          <div class="progress-bar" id="sessionBar" style="width:0%; background:var(--yellow);"></div>
+        </div>
+      </div>
+      <div class="card-foot">
+        <span>WebDirect: <strong id="wdCount" style="color:#fff;">0</strong></span>
+        <span>Pro: <strong id="proCount" style="color:#fff;">0</strong></span>
+        <span>API: <strong id="apiCount" style="color:#fff;">0</strong></span>
+      </div>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Database File (.fmp12)</th>
-          <th>Size (GB)</th>
-          <th>Connected Clients</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody id="dbTableBody">
-        <tr>
-          <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">
-            Connecting to real-time telemetry stream...
-          </td>
-        </tr>
-      </tbody>
-    </table>
+
+    <!-- Real CPU Load -->
+    <div class="card">
+      <div class="card-top">
+        <span class="card-label">Host CPU Utilization</span>
+        <div class="card-icon" style="color:var(--blue)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+        </div>
+      </div>
+      <div>
+        <div class="card-val" id="cpuVal">0.0%</div>
+        <div class="progress-track">
+          <div class="progress-bar" id="cpuBar" style="width:0%; background:var(--blue);"></div>
+        </div>
+      </div>
+      <div class="card-foot">
+        <span id="cpuStatus">HEALTHY</span>
+        <span style="color:var(--text-muted);">Real Server Load</span>
+      </div>
+    </div>
+
+    <!-- Real Host Memory Usage -->
+    <div class="card">
+      <div class="card-top">
+        <span class="card-label">Host Memory Usage</span>
+        <div class="card-icon" style="color:var(--purple)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h.01M10 12h.01M14 12h.01M18 12h.01"/></svg>
+        </div>
+      </div>
+      <div>
+        <div class="card-val" id="ramVal">0.0 <span style="font-size:16px; color:var(--text-muted); font-weight:500;">GB</span></div>
+        <div class="progress-track">
+          <div class="progress-bar" id="ramBar" style="width:0%; background:var(--purple);"></div>
+        </div>
+      </div>
+      <div class="card-foot">
+        <span id="ramCapacity">Capacity: 64 GB</span>
+        <span id="ramPct" style="color:var(--purple); font-weight:700;">0%</span>
+      </div>
+    </div>
+
+    <!-- Disk Storage Allocation -->
+    <div class="card">
+      <div class="card-top">
+        <span class="card-label">Disk Storage Usage</span>
+        <div class="card-icon" style="color:var(--accent)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12H2M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+        </div>
+      </div>
+      <div>
+        <div class="card-val" id="diskVal">0.0 <span style="font-size:16px; color:var(--text-muted); font-weight:500;">GB</span></div>
+        <div class="progress-track">
+          <div class="progress-bar" id="diskBar" style="width:0%; background:var(--accent);"></div>
+        </div>
+      </div>
+      <div class="card-foot">
+        <span id="diskFree">Free: -- GB</span>
+        <span id="diskPct" style="color:var(--accent); font-weight:700;">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Live Trend Chart & Real Databases List -->
+  <div class="bottom-layout">
+    <!-- Live Multi-Axis Chart -->
+    <div class="chart-container">
+      <div class="chart-header">
+        <div class="chart-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          Live FMS Operational Telemetry
+        </div>
+        <div class="chart-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span> CPU Load (%)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--yellow)"></span> Active Sessions</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--purple)"></span> RAM Usage (%)</div>
+        </div>
+      </div>
+      <div style="flex: 1; min-height: 280px; position: relative;">
+        <canvas id="perfChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Real Hosted Databases List -->
+    <div class="db-container">
+      <div class="db-header">
+        <div class="db-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+          Hosted Databases (Admin API)
+        </div>
+        <span class="db-count" id="dbCountBadge">0 Files</span>
+      </div>
+      <div class="db-list" id="dbList">
+        <div style="text-align: center; color: var(--text-muted); padding: 30px 10px; font-size: 12px;">
+          Listening for live Admin API database catalog...
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
-    // Live Server-Sent Events from ntfy topic
-    const eventSource = new EventSource('https://ntfy.sh/masterbom_fms_monitor_hitachi/sse');
+    // Live Clock Display
+    setInterval(() => {
+      const now = new Date();
+      document.getElementById('clockTime').innerText = now.toTimeString().split(' ')[0] + ' UTC';
+    }, 1000);
 
+    // Initialize Chart.js
+    const ctx = document.getElementById('perfChart').getContext('2d');
+    const perfChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'CPU Load (%)',
+            data: [],
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderWidth: 2,
+            tension: 0.35,
+            fill: true,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Active Sessions',
+            data: [],
+            borderColor: '#f59e0b',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            tension: 0.1,
+            yAxisID: 'y1'
+          },
+          {
+            label: 'RAM Usage (%)',
+            data: [],
+            borderColor: '#8b5cf6',
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            borderDash: [4, 4],
+            tension: 0.2,
+            yAxisID: 'y'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            grid: { color: 'rgba(37, 56, 97, 0.3)' },
+            ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
+          },
+          y: {
+            min: 0,
+            max: 100,
+            grid: { color: 'rgba(37, 56, 97, 0.3)' },
+            ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
+          },
+          y1: {
+            position: 'right',
+            min: 0,
+            max: 15,
+            grid: { drawOnChartArea: false },
+            ticks: { color: '#f59e0b', font: { family: 'JetBrains Mono', size: 10 }, stepSize: 5 }
+          }
+        }
+      }
+    });
+
+    // Render Data into DOM
+    function renderTelemetry(data) {
+      if (!data) return;
+
+      // Header states
+      if (data.engineStatus) {
+        document.getElementById('dbEngineState').innerText = data.engineStatus.dbEngine || 'RUNNING';
+        document.getElementById('wpeState').innerText = data.engineStatus.webPublishing || 'RUNNING';
+        document.getElementById('dapiState').innerText = data.engineStatus.dataApi || 'ACTIVE';
+      }
+
+      if (data.timestamp) {
+        const timeStr = new Date(data.timestamp).toTimeString().split(' ')[0];
+        document.getElementById('syncTimestamp').innerText = timeStr;
+      }
+
+      // 1. Sessions
+      const totalClients = data.clients?.total ?? 0;
+      const maxAllowed = data.clients?.maxAllowed ?? 10;
+      document.getElementById('sessionCount').innerHTML = `${totalClients} <span style="font-size:16px; color:var(--text-muted); font-weight:500;">/ ${maxAllowed}</span>`;
+      document.getElementById('sessionBar').style.width = `${Math.min(100, (totalClients / maxAllowed) * 100)}%`;
+      document.getElementById('wdCount').innerText = data.clients?.webDirect ?? 0;
+      document.getElementById('proCount').innerText = data.clients?.proGo ?? 0;
+      document.getElementById('apiCount').innerText = data.clients?.api ?? 0;
+
+      // 2. CPU
+      const cpu = data.metrics?.cpuPercent ?? 0;
+      document.getElementById('cpuVal').innerText = `${cpu.toFixed(1)}%`;
+      document.getElementById('cpuBar').style.width = `${cpu}%`;
+      const isCpuHigh = cpu > 85;
+      document.getElementById('cpuBar').style.background = isCpuHigh ? 'var(--red)' : 'var(--blue)';
+      document.getElementById('cpuStatus').innerText = isCpuHigh ? 'HEAVY LOAD' : 'HEALTHY';
+      document.getElementById('cpuStatus').style.color = isCpuHigh ? 'var(--red)' : 'var(--green)';
+
+      // Alert Banner logic
+      const banner = document.getElementById('alertBanner');
+      if (isCpuHigh) {
+        banner.classList.add('active');
+        document.getElementById('alertTitle').innerText = `HIGH CPU LOAD DETECTED: ${cpu.toFixed(1)}%`;
+        document.getElementById('alertDesc').innerText = "FileMaker Server engine CPU utilization exceeded 85% normal threshold.";
+      } else {
+        banner.classList.remove('active');
+      }
+
+      // 3. RAM
+      const ramUsed = data.metrics?.ramUsedGB ?? 0;
+      const ramTotal = data.metrics?.ramTotalGB ?? 64;
+      const ramPct = data.metrics?.ramPercent ?? Math.round((ramUsed / ramTotal) * 100);
+      document.getElementById('ramVal').innerHTML = `${ramUsed.toFixed(1)} <span style="font-size:16px; color:var(--text-muted); font-weight:500;">GB</span>`;
+      document.getElementById('ramBar').style.width = `${ramPct}%`;
+      document.getElementById('ramCapacity').innerText = `Capacity: ${ramTotal} GB`;
+      document.getElementById('ramPct').innerText = `${ramPct}%`;
+
+      // 4. Disk Storage
+      const diskUsed = data.metrics?.diskUsedGB ?? 0;
+      const diskFree = data.metrics?.diskFreeGB ?? 0;
+      const diskPct = data.metrics?.diskUsagePercent ?? 0;
+      document.getElementById('diskVal').innerHTML = `${diskUsed} <span style="font-size:16px; color:var(--text-muted); font-weight:500;">GB</span>`;
+      document.getElementById('diskBar').style.width = `${diskPct}%`;
+      document.getElementById('diskFree').innerText = `Free: ${diskFree} GB`;
+      document.getElementById('diskPct').innerText = `${diskPct}%`;
+
+      // 5. Database List
+      const dbs = data.databases?.list || [];
+      document.getElementById('dbCountBadge').innerText = `${dbs.length} Files`;
+      if (dbs.length > 0) {
+        document.getElementById('dbList').innerHTML = dbs.map(db => `
+          <div class="db-row">
+            <div class="db-file-info">
+              <svg class="db-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              <div>
+                <div class="db-name">${db.name}</div>
+                <div class="db-meta">${db.sizeGB} GB • ${db.clients} Clients</div>
+              </div>
+            </div>
+            <span class="badge-normal">${db.status}</span>
+          </div>
+        `).join('');
+      }
+
+      // 6. Update Chart Data
+      const labelTime = new Date().toTimeString().split(' ')[0];
+      if (perfChart.data.labels.length > 15) {
+        perfChart.data.labels.shift();
+        perfChart.data.datasets[0].data.shift();
+        perfChart.data.datasets[1].data.shift();
+        perfChart.data.datasets[2].data.shift();
+      }
+      perfChart.data.labels.push(labelTime);
+      perfChart.data.datasets[0].data.push(cpu);
+      perfChart.data.datasets[1].data.push(totalClients);
+      perfChart.data.datasets[2].data.push(ramPct);
+      perfChart.update();
+    }
+
+    // Immediate Poll from ntfy topic on load
+    fetch('https://ntfy.sh/masterbom_fms_monitor_hitachi/json?poll=1')
+      .then(res => res.text())
+      .then(text => {
+        const lines = text.trim().split('\n');
+        for (let i = lines.length - 1; i >= 0; i--) {
+          try {
+            const entry = JSON.parse(lines[i]);
+            if (entry.event === 'message' && entry.message) {
+              renderTelemetry(JSON.parse(entry.message));
+              break;
+            }
+          } catch(e) {}
+        }
+      })
+      .catch(console.error);
+
+    // Live Server-Sent Events stream
+    const eventSource = new EventSource('https://ntfy.sh/masterbom_fms_monitor_hitachi/sse');
     eventSource.onmessage = function(event) {
       try {
         const payload = JSON.parse(event.data);
-        if (!payload.message) return;
-        const data = JSON.parse(payload.message);
-
-        // 1. Sessions
-        const total = data.clients?.total || 0;
-        const max = data.clients?.maxAllowed || 10;
-        document.getElementById('sessionCount').innerText = `${total} / ${max}`;
-        document.getElementById('sessionBar').style.width = `${Math.min(100, (total / max) * 100)}%`;
-        document.getElementById('wdCount').innerText = data.clients?.webDirect || 0;
-        document.getElementById('proCount').innerText = data.clients?.proGo || 0;
-        document.getElementById('apiCount').innerText = data.clients?.api || 0;
-
-        // 2. Real CPU
-        const cpu = data.metrics?.cpuPercent || 0;
-        document.getElementById('cpuVal').innerText = `${cpu}%`;
-        document.getElementById('cpuBar').style.width = `${cpu}%`;
-        document.getElementById('cpuBar').style.background = cpu > 80 ? 'var(--red)' : (cpu > 60 ? 'var(--yellow)' : 'var(--accent)');
-        document.getElementById('cpuStatus').innerText = cpu > 80 ? 'HIGH' : 'HEALTHY';
-        document.getElementById('cpuStatus').style.color = cpu > 80 ? 'var(--red)' : 'var(--green)';
-
-        // 3. Real Memory Usage
-        const ramUsed = data.metrics?.ramUsedGB || 0;
-        const ramTotal = data.metrics?.ramTotalGB || 64;
-        const ramPct = data.metrics?.ramPercent || Math.round((ramUsed / ramTotal) * 100);
-        document.getElementById('ramVal').innerText = `${ramUsed} GB`;
-        document.getElementById('ramBar').style.width = `${ramPct}%`;
-        document.getElementById('ramPercentText').innerText = `${ramPct}% Used`;
-        document.getElementById('ramTotalText').innerText = `Capacity: ${ramTotal} GB`;
-
-        // 4. Storage & Version
-        document.getElementById('diskVal').innerText = `${data.metrics?.diskUsedGB || 0} GB`;
-        document.getElementById('fmsVersionBadge').innerText = data.fmsVersion || 'FMS';
-
-        // 5. Real Databases Table Mapping
-        const dbs = data.databases?.list || [];
-        document.getElementById('dbTotalBadge').innerText = `${dbs.length} Files Mounted`;
-        
-        if (dbs.length > 0) {
-          const rows = dbs.map(db => `
-            <tr>
-              <td style="font-weight: 700; color: #fff;">${db.name}</td>
-              <td>${db.sizeGB} GB</td>
-              <td>${db.clients} active</td>
-              <td><span class="badge">${db.status}</span></td>
-            </tr>
-          `).join('');
-          document.getElementById('dbTableBody').innerHTML = rows;
+        if (payload.event === 'message' && payload.message) {
+          renderTelemetry(JSON.parse(payload.message));
         }
-
       } catch (err) {
-        console.error("Payload parse error:", err);
+        console.error("SSE stream error:", err);
       }
     };
   </script>
