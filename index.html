@@ -1,2522 +1,855 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full bg-[#070a12]">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>FMS OPS CENTER - Server Performance & Status Dashboard</title>
-  <style>
-    :root {
-      --bg-base: #070b12;
-      --bg-surface: #0c121e;
-      --bg-card: #111a2d;
-      --bg-card-hover: #16223b;
-      --border-subtle: #1c2b48;
-      --border-highlight: #283d66;
-
-      --cyan-bright: #00e5ff;
-      --cyan-glow: rgba(0, 229, 255, 0.25);
-      --blue-accent: #2563eb;
-      --blue-bright: #38bdf8;
-      --indigo-accent: #6366f1;
-      --purple-accent: #8b5cf6;
-      --emerald-accent: #10b981;
-      --emerald-glow: rgba(16, 185, 129, 0.2);
-      --amber-accent: #f59e0b;
-      --amber-glow: rgba(245, 158, 11, 0.2);
-      --rose-accent: #f43f5e;
-      --rose-glow: rgba(244, 63, 94, 0.25);
-
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
-      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      --font-mono: ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "JetBrains Mono", monospace;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
-    body {
-      background-color: var(--bg-base);
-      color: var(--text-main);
-      font-family: var(--font-family);
-      min-height: 100vh;
-      overflow-x: hidden;
-      font-size: 13px;
-      line-height: 1.4;
-      user-select: none;
-    }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: var(--bg-base);
-    }
-    ::-webkit-scrollbar-thumb {
-      background: var(--border-highlight);
-      border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--text-dim);
-    }
-
-    .dashboard-container {
-      max-width: 1680px;
-      margin: 0 auto;
-      padding: 16px 20px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    /* HEADER */
-    .top-navbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-      padding: 12px 18px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    }
-
-    .brand-section {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .brand-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #0284c7, #0369a1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 14px rgba(2, 132, 199, 0.45);
-      color: #fff;
-    }
-
-    .brand-title-wrap {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .brand-title {
-      font-size: 17px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .host-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: color 0.15s ease;
-    }
-    .host-badge:hover {
-      color: var(--cyan-bright);
-    }
-
-    .status-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--emerald-accent);
-      box-shadow: 0 0 8px var(--emerald-accent);
-      animation: pulse-green 2s infinite ease-in-out;
-    }
-    .status-dot.red {
-      background: var(--rose-accent);
-      box-shadow: 0 0 8px var(--rose-accent);
-      animation: pulse-red 1.2s infinite ease-in-out;
-    }
-
-    @keyframes pulse-green {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.3); opacity: 0.6; }
-    }
-    @keyframes pulse-red {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.35); opacity: 0.5; }
-    }
-
-    .env-pills {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .env-pill {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 4px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      border: 1px solid transparent;
-      transition: all 0.2s ease;
-    }
-    .env-pill.active {
-      background: #0284c7;
-      color: #ffffff;
-      border-color: #38bdf8;
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
-    }
-    .env-pill.inactive {
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text-muted);
-      border-color: var(--border-subtle);
-    }
-    .env-pill.inactive:hover {
-      background: rgba(255, 255, 255, 0.09);
-      color: var(--text-main);
-    }
-
-    .services-status-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .service-chip {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      background: rgba(17, 26, 45, 0.85);
-      border: 1px solid var(--border-subtle);
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.3px;
-    }
-    .service-chip .label {
-      color: var(--text-muted);
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-    .service-chip .state {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-    .state.running {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.35);
-    }
-    .state.active {
-      background: rgba(6, 182, 212, 0.15);
-      color: #22d3ee;
-      border: 1px solid rgba(6, 182, 212, 0.35);
-    }
-    .state.warning {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.35);
-    }
-
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .clock-widget {
-      text-align: right;
-      font-family: var(--font-mono);
-    }
-    .clock-time {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      color: #f8fafc;
-    }
-    .clock-sub {
-      font-size: 10px;
-      color: var(--text-dim);
-    }
-    .clock-sub span {
-      color: var(--cyan-bright);
-    }
-
-    .btn-action {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      border: 1px solid var(--border-subtle);
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text-main);
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .btn-action:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: var(--border-highlight);
-    }
-    .btn-action.sim-toggle {
-      border-color: rgba(245, 158, 11, 0.4);
-      color: #fcd34d;
-      background: rgba(245, 158, 11, 0.08);
-    }
-    .btn-action.sim-toggle.off {
-      border-color: var(--border-subtle);
-      color: var(--text-dim);
-      background: rgba(255, 255, 255, 0.04);
-    }
-
-    /* LATENCY ALERT BANNER */
-    .alert-banner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      background: linear-gradient(90deg, rgba(127, 29, 29, 0.75), rgba(69, 10, 10, 0.6));
-      border: 1px solid rgba(239, 68, 68, 0.55);
-      box-shadow: 0 0 25px rgba(239, 68, 68, 0.2);
-      border-radius: 10px;
-      padding: 12px 18px;
-      transition: all 0.3s ease;
-      animation: alert-glow 3s infinite ease-in-out;
-    }
-
-    @keyframes alert-glow {
-      0%, 100% { border-color: rgba(239, 68, 68, 0.4); box-shadow: 0 0 15px rgba(239, 68, 68, 0.15); }
-      50% { border-color: rgba(244, 63, 94, 0.8); box-shadow: 0 0 28px rgba(244, 63, 94, 0.3); }
-    }
-
-    .alert-banner.resolved {
-      background: linear-gradient(90deg, rgba(6, 78, 59, 0.7), rgba(4, 47, 46, 0.6));
-      border-color: rgba(16, 185, 129, 0.5);
-      box-shadow: 0 0 18px rgba(16, 185, 129, 0.15);
-      animation: none;
-    }
-
-    .alert-content-left {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .alert-icon-box {
-      width: 38px;
-      height: 38px;
-      min-width: 38px;
-      border-radius: 8px;
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid rgba(239, 68, 68, 0.5);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #f87171;
-    }
-    .alert-banner.resolved .alert-icon-box {
-      background: rgba(16, 185, 129, 0.2);
-      border-color: rgba(16, 185, 129, 0.5);
-      color: #34d399;
-    }
-
-    .alert-text-group {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .alert-title {
-      font-size: 14px;
-      font-weight: 800;
-      color: #ffffff;
-      letter-spacing: 0.3px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .alert-desc {
-      font-size: 12px;
-      color: #cbd5e1;
-      font-family: var(--font-mono);
-    }
-    .alert-desc mark {
-      background: rgba(0, 0, 0, 0.4);
-      color: #fca5a5;
-      padding: 1px 6px;
-      border-radius: 4px;
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-
-    .btn-ack {
-      padding: 8px 18px;
-      background: rgba(220, 38, 38, 0.3);
-      color: #fee2e2;
-      border: 1px solid rgba(239, 68, 68, 0.7);
-      border-radius: 6px;
-      font-weight: 700;
-      font-size: 11px;
-      letter-spacing: 0.8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-    .btn-ack:hover {
-      background: rgba(220, 38, 38, 0.6);
-      color: #ffffff;
-      box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
-    }
-    .alert-banner.resolved .btn-ack {
-      background: rgba(16, 185, 129, 0.25);
-      border-color: rgba(16, 185, 129, 0.6);
-      color: #a7f3d0;
-    }
-
-    /* METRIC CARDS GRID (8 CARDS) */
-    .metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-    }
-
-    @media (max-width: 1280px) {
-      .metrics-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-    @media (max-width: 680px) {
-      .metrics-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .metric-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 124px;
-      position: relative;
-      transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-    }
-    .metric-card:hover {
-      background: var(--bg-card-hover);
-      border-color: var(--border-highlight);
-    }
-
-    .metric-card.card-alert {
-      border-color: rgba(239, 68, 68, 0.65);
-      box-shadow: 0 0 20px rgba(239, 68, 68, 0.18);
-    }
-
-    .metric-card-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 6px;
-    }
-
-    .metric-title {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-muted);
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-    }
-
-    .metric-icon-bubble {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-    }
-    .bubble-cyan { background: rgba(0, 229, 255, 0.1); color: var(--cyan-bright); border: 1px solid rgba(0, 229, 255, 0.25); }
-    .bubble-emerald { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.25); }
-    .bubble-purple { background: rgba(139, 92, 246, 0.12); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.25); }
-    .bubble-amber { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.25); }
-    .bubble-blue { background: rgba(56, 189, 248, 0.12); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.25); }
-    .bubble-indigo { background: rgba(99, 102, 241, 0.12); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.25); }
-    .bubble-teal { background: rgba(20, 184, 166, 0.12); color: #2dd4bf; border: 1px solid rgba(20, 184, 166, 0.25); }
-
-    .metric-value-row {
-      display: flex;
-      align-items: baseline;
-      gap: 6px;
-      margin-bottom: 8px;
-    }
-
-    .metric-value {
-      font-family: var(--font-mono);
-      font-size: 27px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      color: #ffffff;
-    }
-    .metric-unit {
-      font-size: 13px;
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-    .metric-card.card-alert .metric-value {
-      color: #38bdf8;
-    }
-
-    /* Progress bar */
-    .metric-progress-track {
-      width: 100%;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 2px;
-      overflow: hidden;
-      margin-bottom: 8px;
-    }
-    .metric-progress-fill {
-      height: 100%;
-      border-radius: 2px;
-      transition: width 0.4s ease;
-    }
-    .fill-cyan { background: var(--cyan-bright); box-shadow: 0 0 8px var(--cyan-bright); }
-    .fill-emerald { background: var(--emerald-accent); box-shadow: 0 0 8px var(--emerald-accent); }
-    .fill-purple { background: var(--purple-accent); box-shadow: 0 0 8px var(--purple-accent); }
-    .fill-blue { background: var(--blue-bright); box-shadow: 0 0 8px var(--blue-bright); }
-    .fill-teal { background: #2dd4bf; box-shadow: 0 0 8px #2dd4bf; }
-    .fill-amber { background: var(--amber-accent); box-shadow: 0 0 8px var(--amber-accent); }
-
-    /* Multi-segmented session progress */
-    .segmented-track {
-      display: flex;
-      width: 100%;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 2px;
-      overflow: hidden;
-      margin-bottom: 8px;
-      gap: 2px;
-    }
-    .seg-pro { background: #00e5ff; height: 100%; transition: width 0.4s ease; }
-    .seg-web { background: #f59e0b; height: 100%; transition: width 0.4s ease; }
-    .seg-api { background: #ec4899; height: 100%; transition: width 0.4s ease; }
-
-    .metric-card-bottom {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 11px;
-      color: var(--text-dim);
-      font-family: var(--font-mono);
-    }
-    .metric-sub-detail {
-      color: var(--text-muted);
-    }
-    .metric-tag {
-      font-weight: 700;
-      letter-spacing: 0.3px;
-    }
-    .tag-danger {
-      color: #f87171;
-      animation: pulse-red 1.5s infinite;
-    }
-    .tag-success {
-      color: #34d399;
-    }
-    .tag-active {
-      color: #a78bfa;
-    }
-    .tag-percent {
-      color: #38bdf8;
-    }
-
-    /* MAIN LOWER SPLIT: CHART & HOSTED DATABASES */
-    .lower-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 16px;
-    }
-
-    @media (max-width: 1100px) {
-      .lower-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .panel-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-    }
-
-    .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .panel-title-wrap {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .panel-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .panel-subtitle {
-      font-size: 11px;
-      color: var(--text-dim);
-      margin-top: 2px;
-    }
-
-    .chart-legend {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      font-size: 11px;
-      font-family: var(--font-mono);
-    }
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--text-muted);
-      cursor: pointer;
-    }
-    .legend-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-    .dot-cyan { background: var(--cyan-bright); box-shadow: 0 0 6px var(--cyan-bright); }
-    .dot-blue { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
-    .dot-amber { background: var(--amber-accent); box-shadow: 0 0 6px var(--amber-accent); }
-
-    /* Canvas chart container */
-    .chart-container {
-      position: relative;
-      width: 100%;
-      height: 290px;
-      background: rgba(10, 16, 28, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      border-radius: 8px;
-      padding: 10px;
-    }
-
-    #telemetryCanvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-    }
-
-    .chart-tooltip {
-      position: absolute;
-      pointer-events: none;
-      background: rgba(13, 20, 36, 0.95);
-      border: 1px solid var(--border-highlight);
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-      display: none;
-      z-index: 10;
-      backdrop-filter: blur(8px);
-    }
-    .tooltip-time {
-      color: var(--text-dim);
-      margin-bottom: 4px;
-      font-size: 10px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding-bottom: 2px;
-    }
-    .tooltip-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin: 2px 0;
-    }
-
-    /* HOSTED DATABASES PANEL */
-    .db-count-badge {
-      font-size: 11px;
-      font-family: var(--font-mono);
-      padding: 2px 8px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text-muted);
-      border: 1px solid var(--border-subtle);
-    }
-
-    .db-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      overflow-y: auto;
-      max-height: 290px;
-      padding-right: 2px;
-    }
-
-    .db-card-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(13, 20, 36, 0.65);
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      padding: 12px 14px;
-      transition: all 0.2s ease;
-      cursor: pointer;
-    }
-    .db-card-item:hover {
-      background: rgba(20, 31, 55, 0.85);
-      border-color: var(--border-highlight);
-      transform: translateX(2px);
-    }
-
-    .db-info-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .db-icon-box {
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.04);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-muted);
-      font-size: 14px;
-    }
-
-    .db-details {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .db-filename {
-      font-size: 13px;
-      font-weight: 700;
-      color: #ffffff;
-      font-family: var(--font-mono);
-    }
-
-    .db-meta {
-      font-size: 11px;
-      color: var(--text-dim);
-      font-family: var(--font-mono);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .db-status-badge {
-      font-size: 10px;
-      font-weight: 700;
-      font-family: var(--font-mono);
-      padding: 3px 8px;
-      border-radius: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-    .db-status-badge.normal {
-      background: rgba(16, 185, 129, 0.12);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.35);
-    }
-    .db-status-badge.backup {
-      background: rgba(56, 189, 248, 0.15);
-      color: #38bdf8;
-      border: 1px solid rgba(56, 189, 248, 0.4);
-    }
-    .db-status-badge.paused {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.4);
-    }
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FileMaker Server Ops Center - TV Kiosk</title>
     
-    /* CONNECTED USERS SECTION */
-    .user-usage-grid {
-      display: grid;
-      grid-template-columns: 1fr 2fr;
-      gap: 16px;
-    }
-    @media (max-width: 1100px) {
-      .user-usage-grid {
-        grid-template-columns: 1fr;
-      }
-    }
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    .panel-tabs {
-      display: flex;
-      gap: 16px;
-      border-bottom: 1px solid var(--border-subtle);
-      margin-bottom: 12px;
-    }
-    .panel-tab {
-      padding: 8px 0;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: all 0.2s ease;
-    }
-    .panel-tab.active {
-      color: #fff;
-      border-bottom-color: var(--cyan-bright);
-    }
-    .panel-tab:hover:not(.active) {
-      color: var(--text-main);
-    }
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- FontAwesome 6 CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts: Inter & JetBrains Mono for High-Contrast TV Readability -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 
-    .user-list-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border-subtle);
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-dim);
-    }
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        fms: {
+                            bg: '#070a12',
+                            card: '#0e1626',
+                            border: '#1e293b',
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e',
+                            purple: '#a855f7'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 
-    .user-list-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-      font-size: 12px;
-      transition: background 0.15s ease;
-    }
-    .user-list-row:hover {
-      background: rgba(255, 255, 255, 0.02);
-    }
+    <style>
+        body {
+            background-color: #070a12;
+            color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            user-select: none;
+        }
 
-    .user-entity-col {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .status-check {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      border: 1px solid #10b981;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .status-check::after {
-      content: '';
-      width: 6px;
-      height: 3px;
-      border-left: 1.5px solid #10b981;
-      border-bottom: 1.5px solid #10b981;
-      transform: rotate(-45deg);
-      margin-top: -2px;
-    }
-    .user-color-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-    .user-name {
-      font-family: var(--font-mono);
-      color: #e2e8f0;
-      max-width: 180px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+        /* TV Kiosk High Contrast Card Glows */
+        .tv-card {
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.9) 0%, rgba(10, 15, 28, 0.95) 100%);
+            border: 1px solid rgba(51, 65, 85, 0.6);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 1rem;
+        }
 
-    .user-metric-col {
-      font-family: var(--font-mono);
-      font-weight: 600;
-      color: #fff;
-    }
+        .tv-card-active {
+            border-color: rgba(6, 182, 212, 0.5);
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.15);
+        }
 
-    .multi-chart-container {
-      position: relative;
-      width: 100%;
-      height: 160px;
-      background: rgba(10, 16, 28, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 16px;
-    }
-    .multi-chart-title {
-      position: absolute;
-      top: 10px;
-      left: 12px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text-muted);
-    }
+        .tv-card-danger {
+            border-color: rgba(244, 63, 94, 0.7) !important;
+            box-shadow: 0 0 30px rgba(244, 63, 94, 0.25) !important;
+        }
 
-    /* BOTTOM AUTOMATION & CONTROLS FOOTER */
-    .bottom-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-      padding: 10px 16px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-subtle);
-      border-radius: 10px;
-      font-size: 11px;
-      color: var(--text-muted);
-    }
+        /* Pulsing Alert Keyframes */
+        @keyframes tvPulseAlert {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.01); }
+        }
+        .animate-tv-alert {
+            animation: tvPulseAlert 1.5s infinite ease-in-out;
+        }
 
-    .n8n-status-wrap {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-family: var(--font-mono);
-    }
-    .n8n-tag {
-      background: rgba(236, 72, 153, 0.15);
-      color: #f472b6;
-      border: 1px solid rgba(236, 72, 153, 0.3);
-      padding: 2px 7px;
-      border-radius: 4px;
-      font-weight: 700;
-    }
-
-    .bottom-controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    /* MODAL DIALOGS */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(5px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
-    }
-    .modal-overlay.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .modal-window {
-      background: #0d1527;
-      border: 1px solid var(--border-highlight);
-      border-radius: 12px;
-      width: 90%;
-      max-width: 650px;
-      max-height: 85vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
-    }
-
-    .modal-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border-subtle);
-    }
-    .modal-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: #fff;
-    }
-    .modal-close {
-      background: transparent;
-      border: none;
-      color: var(--text-dim);
-      font-size: 18px;
-      cursor: pointer;
-    }
-    .modal-close:hover { color: #fff; }
-
-    .modal-body {
-      padding: 20px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      font-family: var(--font-family);
-    }
-
-    .code-snippet {
-      background: #080d1a;
-      border: 1px solid var(--border-subtle);
-      border-radius: 6px;
-      padding: 12px;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: #93c5fd;
-      overflow-x: auto;
-      white-space: pre-wrap;
-      line-height: 1.5;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .form-group label {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
-    .form-group input, .form-group textarea {
-      background: #080d1a;
-      border: 1px solid var(--border-subtle);
-      border-radius: 6px;
-      padding: 8px 10px;
-      color: #fff;
-      font-family: var(--font-mono);
-      font-size: 12px;
-    }
-    .form-group input:focus, .form-group textarea:focus {
-      outline: none;
-      border-color: var(--cyan-bright);
-    }
-
-    .modal-footer {
-      padding: 12px 20px;
-      border-top: 1px solid var(--border-subtle);
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-
-    /* Toast notification */
-    .toast-notice {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background: #1e293b;
-      border: 1px solid var(--cyan-bright);
-      color: #fff;
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-family: var(--font-mono);
-      font-size: 12px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-      z-index: 2000;
-      transform: translateY(100px);
-      opacity: 0;
-      transition: all 0.3s ease;
-    }
-    .toast-notice.show {
-      transform: translateY(0);
-      opacity: 1;
-    }
-  </style>
+        /* Custom Scrollbar for TV Log Box */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.8); }
+        ::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 4px; }
+    </style>
 </head>
-<body>
+<body class="min-h-screen flex flex-col justify-between p-4 md:p-6 text-slate-100">
 
-  <div class="dashboard-container">
-    
-    <!-- TOP NAVIGATION & STATUS BAR -->
-    <header class="top-navbar">
-      <div class="brand-section">
-        <div class="brand-icon">
-          <!-- Server SVG Icon -->
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-            <line x1="6" y1="6" x2="6.01" y2="6"></line>
-            <line x1="6" y1="18" x2="6.01" y2="18"></line>
-          </svg>
-        </div>
-        <div class="brand-title-wrap">
-          <div class="brand-title">
-            FMS OPS CENTER
-          </div>
-          <div class="host-badge" id="hostBadge" title="Click to edit server host">
-            <span class="status-dot" id="globalStatusDot"></span>
-            <span id="serverHostDisplay">https://hitachi.master-bom.com</span>
-          </div>
-        </div>
+    <!-- TOP HEADER / TV CONTROL BAR -->
+    <header class="tv-card p-4 mb-5 flex flex-col xl:flex-row items-center justify-between gap-4">
         
-        <div class="env-pills">
-          <button class="env-pill active" onclick="switchEnv('Hitachi Prod')">Hitachi Prod</button>
-          <button class="env-pill inactive" onclick="switchEnv('Demo Env')">Demo Env</button>
+        <!-- Left: Brand & Active Host Badge -->
+        <div class="flex items-center gap-4 w-full xl:w-auto justify-between xl:justify-start">
+            <div class="flex items-center gap-3">
+                <div class="p-3 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl shadow-lg shadow-cyan-500/20 text-white font-black text-2xl flex items-center justify-center">
+                    <i class="fa-solid fa-server"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-black text-2xl tracking-wider text-white">FMS OPS CENTER</h1>
+                        <span id="stale-badge" class="hidden px-2.5 py-0.5 text-[10px] font-black rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse">
+                            <i class="fa-solid fa-clock-rotate-left mr-1"></i> DATA STALE (>30s)
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400 font-mono flex items-center gap-2">
+                        <span id="status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                        <span id="active-server-url" class="font-bold text-slate-200">https://hitachi.master-bom.com</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Server Switcher Tabs -->
+            <div class="flex bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+                <button id="btn-hitachi" onclick="switchServer('hitachi')" class="px-4 py-2 rounded-lg text-xs font-extrabold transition-all bg-cyan-600 text-white shadow-lg">
+                    Hitachi Prod
+                </button>
+                <button id="btn-demo" onclick="switchServer('demo')" class="px-4 py-2 rounded-lg text-xs font-extrabold text-slate-400 hover:text-white transition-all">
+                    Demo Env
+                </button>
+            </div>
         </div>
-      </div>
 
-      <!-- Core Engine Status Badges -->
-      <div class="services-status-group">
-        <div class="service-chip">
-          <span class="label">DB ENGINE</span>
-          <span class="state running" id="chipDbEngine">RUNNING</span>
-        </div>
-        <div class="service-chip">
-          <span class="label">WEB PUBLISHING</span>
-          <span class="state running" id="chipWpe">RUNNING</span>
-        </div>
-        <div class="service-chip">
-          <span class="label">DATA API / N8N</span>
-          <span class="state active" id="chipDataApi">ACTIVE</span>
-        </div>
-      </div>
-
-      <!-- Navigation Actions & UTC Clock -->
-      <div class="nav-actions">
-        <div class="clock-widget">
-          <div class="clock-time" id="utcClock">12:15:09 UTC</div>
-          <div class="clock-sub">Last Sync: <span id="lastSyncTime">12:15:08</span></div>
+        <!-- Middle: FileMaker Server Engine Status Badges -->
+        <div class="flex flex-wrap items-center gap-2 md:gap-3 w-full xl:w-auto justify-center">
+            <div class="bg-slate-950/60 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2">
+                <span class="text-[10px] font-bold text-slate-400 uppercase">DB Engine</span>
+                <span id="engine-db-status" class="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">RUNNING</span>
+            </div>
+            <div class="bg-slate-950/60 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2">
+                <span class="text-[10px] font-bold text-slate-400 uppercase">Web Publishing</span>
+                <span id="engine-wpe-status" class="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">RUNNING</span>
+            </div>
+            <div class="bg-slate-950/60 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2">
+                <span class="text-[10px] font-bold text-slate-400 uppercase">Data API / n8n</span>
+                <span id="engine-dapi-status" class="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">ACTIVE</span>
+            </div>
         </div>
 
-        <button class="btn-action sim-toggle" id="btnSimMode" onclick="toggleSimMode()">
-          ▶ Sim Mode: <span id="simModeText">ON</span>
-        </button>
+        <!-- Right: Time & TV Mode Controls -->
+        <div class="flex items-center gap-4 justify-between w-full xl:w-auto">
+            <div class="text-right">
+                <div id="clock-display" class="text-lg font-mono font-black text-white">00:00:00 UTC</div>
+                <div class="text-[11px] font-mono text-slate-400">
+                    Last Sync: <span id="last-sync-time" class="text-cyan-400 font-bold">Just now</span>
+                </div>
+            </div>
 
-        <button class="btn-action" onclick="triggerManualSync()" title="Fetch latest telemetry from n8n or FileMaker">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-          </svg>
-          Sync
-        </button>
+            <div class="flex items-center gap-2">
+                <!-- Sim / Live Toggle -->
+                <button id="sim-toggle-btn" onclick="toggleSimulation()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-amber-400 transition flex items-center gap-2">
+                    <i id="sim-icon" class="fa-solid fa-play"></i>
+                    <span id="sim-status-text">Sim Mode: ON</span>
+                </button>
 
-        <button class="btn-action" onclick="openIntegrationModal()" title="View FileMaker Script & n8n setup guide">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-          </svg>
-        </button>
-
-        <button class="btn-action" onclick="toggleFullscreen()" title="Toggle Fullscreen">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
-          </svg>
-        </button>
-      </div>
+                <!-- Fullscreen Toggle -->
+                <button onclick="toggleFullScreen()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition" title="Toggle Fullscreen TV Kiosk">
+                    <i class="fa-solid fa-expand text-sm"></i>
+                </button>
+            </div>
+        </div>
     </header>
 
-    <!-- ALERT BANNER -->
-    <section class="alert-banner" id="alertBanner">
-      <div class="alert-content-left">
-        <div class="alert-icon-box" id="alertIconBox">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
-            <line x1="12" y1="9" x2="12" y2="13"></line>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-          </svg>
-        </div>
-        <div class="alert-text-group">
-          <div class="alert-title" id="alertTitle">
-            LATENCY SPIKE DETECTED: 50.2 ms / Call
-          </div>
-          <div class="alert-desc" id="alertDesc">
-            Heavy calculation or unindexed sort on field <mark>'Spend'</mark> in procurement tables.
-          </div>
-        </div>
-      </div>
-      <button class="btn-ack" id="btnAcknowledge" onclick="acknowledgeAlert()">ACKNOWLEDGE</button>
-    </section>
-
-    <!-- METRICS GRID (8 KEY METRICS) -->
-    <main class="metrics-grid">
-
-      <!-- 1. ELAPSED TIME / CALL -->
-      <div class="metric-card card-alert" id="cardElapsed">
-        <div class="metric-card-top">
-          <div class="metric-title">ELAPSED TIME / CALL</div>
-          <div class="metric-icon-bubble bubble-cyan">
-            <!-- Timer SVG -->
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-          </div>
-        </div>
-        <div class="metric-value-row">
-          <div class="metric-value" id="valElapsed">50.2</div>
-          <div class="metric-unit">ms</div>
-        </div>
-        <div class="metric-progress-track">
-          <div class="metric-progress-fill fill-cyan" id="fillElapsed" style="width: 82%;"></div>
-        </div>
-        <div class="metric-card-bottom">
-          <span class="metric-sub-detail" id="subElapsed">Threshold: &lt;20 ms</span>
-          <span class="metric-tag tag-danger" id="tagElapsed">SPIKE DETECTED</span>
-        </div>
-      </div>
-
-      <!-- 2. CACHE HIT RATIO -->
-      <div class="metric-card">
-        <div class="metric-card-top">
-          <div class="metric-title">CACHE HIT RATIO</div>
-          <div class="metric-icon-bubble bubble-emerald">
-            <!-- Zap / Lightning SVG -->
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-            </svg>
-          </div>
-        </div>
-        <div class="metric-value-row">
-          <div class="metric-value" id="valCache">99.2</div>
-          <div class="metric-unit">%</div>
-        </div>
-        <div class="metric-progress-track">
-          <div class="metric-progress-fill fill-emerald" id="fillCache" style="width: 99.2%;"></div>
-        </div>
-        <div class="metric-card-bottom">
-          <span class="metric-sub-detail" id="subCache">Target: &gt;95.0%</span>
-          <span class="metric-sub-detail">Unsaved Cache: <strong style="color:#f1f5f9;" id="valUnsavedCache">1.2%</strong></span>
-        </div>
-      </div>
-
-      <!-- 3. REMOTE CALLS / SEC -->
-      <div class="metric-card">
-        <div class="metric-card-top">
-          <div class="metric-title">REMOTE CALLS / SEC</div>
-          <div class="metric-icon-bubble bubble-purple">
-            <!-- Network Hierarchy SVG -->
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="3" width="6" height="4" rx="1"></rect>
-              <rect x="2" y="17" width="6" height="4" rx="1"></rect>
-              <rect x="16" y="17" width="6" height="4" rx="1"></rect>
-              <path d="M12 7v5M5 17v-3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"></path>
-            </svg>
-          </div>
-        </div>
-        <div class="metric-value-row">
-          <div class="metric-value" id="valRemoteCalls">171</div>
-        </div>
-        <div class="metric-progress-track">
-          <div class="metric-progress-fill fill-purple" id="fillRemoteCalls" style="width: 60%;"></div>
-        </div>
-        <div class="metric-card-bottom">
-          <span class="metric-sub-detail" id="subIoTime">I/O Time/Call: 0.8 ms</span>
-          <span class="metric-tag tag-active" id="tagRemoteCalls">ACTIVE</span>
-        </div>
-      </div>
-
-      <!-- 4. ACTIVE SESSIONS -->
-      <div class="metric-card">
-        <div class="metric-card-top">
-          <div class="metric-title">ACTIVE SESSIONS</div>
-          <div class="metric-icon-bubble bubble-amber">
-            <!-- Users SVG -->
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-          </div>
-        </div>
-        <div class="metric-value-row">
-          <div class="metric-value" id="valSessions">38</div>
-          <div class="metric-unit" id="valSessionsMax">/ 100</div>
-        </div>
-        <!-- Segmented bar: Pro (Cyan), WebDirect (Amber), Data API (Pink) -->
-        <div class="segmented-track">
-          <div class="seg-pro" id="segPro" style="width: 20%;" title="Pro Clients: 20"></div>
-          <div class="seg-web" id="segWeb" style="width: 12%;" title="WebDirect: 12"></div>
-          <div class="seg-api" id="segApi" style="width: 6%;" title="API/n8n: 6"></div>
-        </div>
-        <div class="metric-card-bottom" style="font-size: 10px;">
-          <span>Pro: <strong style="color:var(--cyan-bright);" id="cntPro">20</strong></span>
-          <span>WebDirect: <strong style="color:var(--amber-accent);" id="cntWeb">12</strong></span>
-          <span>API/n8n: <strong style="color:#ec4899;" id="cntApi">6</strong></span>
-        </div>
-      </div>
-
-      <!-- 5. HOST CPU UTILIZATION -->
-      <div class="metric-card">
-        <div class="metric-card-top">
-          <div class="metric-title">HOST CPU UTILIZATION</div>
-          <div class="metric-icon-bubble bubble-blue">
-            <!-- CPU SVG -->
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="4" y="4" width="16" height="16" rx="2"></rect>
-              <rect x="9" y="9" width="6" height="6"></rect>
-              <line x1="9" y1="1" x2="9" y2="4"></line>
-              <line x1="15" y1="1" x2="15" y2="4"></line>
-              <line x1="9" y1="20" x2="9" y2="23"></line>
-              <line x1="15" y1="20" x2="15" y2="23"></line>
-              <line x1="20" y1="9" x2="23" y2="9"></line>
-              <line x1="20" y1="15" x2="23" y2="15"></line>
-              <line x1="1" y1="9" x2="4" y2="9"></line>
-              <line x1="1" y1="15" x2="4" y2="15"></line>
-            </svg>
-          </div>
-        </div>
-        <div class="metric-value-row">
-          <div class="metric-value" id="valCpu">65.4</div>
-          <div class="metric-unit">%</div>
-        </div>
-        <div class="metric-progress-track">
-          <div class="metric-progress-fill fill-blue" id="fillCpu" style="width: 65.4%;"></div>
-        </div>
-        <div class="metric-card-bottom">
-          <span class="metric-sub-detail" id="subCpuCores">12 Cores / 24 Threads</span>
-          <span class="metric-tag tag-success" id="tagCpu">HEALTHY</span>
-        </div>
-      </div>
-
-      <!-- 6. HOST RAM ALLOCATION -->
-      <div class="metric-card">
-        <div class="metric-card-top">
-          <div class="metric-title">HOST RAM ALLOCATION</div>
-          <div class="metric-icon-bubble bubble-indigo">
-            <!-- RAM chip SVG -->
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M2 4h20v16H2z"></path>
-              <path d="M6 8v8M10 8v8M14 8v8M18 8v8"></path>
-            </svg>
-          </div>
-        </div>
-        <div class="metric-value-row">
-          <div class="metric-value" id="valRam">22.8</div>
-          <div class="metric-unit">GB</div>
-        </div>
-        <div class="metric-progress-track">
-          <div class="metric-progress-fill fill-purple" id="fillRam" style="width: 35.6%;"></div>
-        </div>
-        <div class="metric-card-bottom">
-          <span class="metric-sub-detail" id="subRamCapacity">Capacity: 64 GB</span>
-          <span class="metric-tag tag-percent" id="tagRamPercent">35.6%</span>
-        </div>
-      </div>
-
-      <!-- 7. DISK STORAGE USAGE -->
-      <div class="metric-card">
-        <div class="metric-card-top">
-          <div class="metric-title">DISK STORAGE USAGE</div>
-          <div class="metric-icon-bubble bubble-teal">
-            <!-- Hard Disk SVG -->
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-              <line x1="2" y1="14" x2="22" y2="14"></line>
-              <circle cx="18" cy="18" r="1"></circle>
-            </svg>
-          </div>
-        </div>
-        <div class="metric-value-row">
-          <div class="metric-value" id="valDisk">412</div>
-          <div class="metric-unit">GB</div>
-        </div>
-        <div class="metric-progress-track">
-          <div class="metric-progress-fill fill-teal" id="fillDisk" style="width: 40.2%;"></div>
-        </div>
-        <div class="metric-card-bottom">
-          <span class="metric-sub-detail" id="subDiskFree">Free: 612 GB</span>
-          <span class="metric-tag tag-percent" id="tagDiskPercent">40.2%</span>
-        </div>
-      </div>
-
-      <!-- 8. NETWORK BANDWIDTH -->
-      <div class="metric-card">
-        <div class="metric-card-top">
-          <div class="metric-title">NETWORK BANDWIDTH</div>
-          <div class="metric-icon-bubble bubble-blue">
-            <!-- Activity Trend SVG -->
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
-              <polyline points="16 7 22 7 22 13"></polyline>
-            </svg>
-          </div>
-        </div>
-        <div class="metric-value-row">
-          <div class="metric-value" id="valNetwork">32.4</div>
-          <div class="metric-unit">MB/s</div>
-        </div>
-        <div class="metric-progress-track">
-          <div class="metric-progress-fill fill-blue" id="fillNetwork" style="width: 48%;"></div>
-        </div>
-        <div class="metric-card-bottom">
-          <span class="metric-sub-detail" id="subNetIn">In: 10.2 MB/s</span>
-          <span class="metric-sub-detail" id="subNetOut">Out: 22.2 MB/s</span>
-        </div>
-      </div>
-
-    </main>
-
-    <!-- LOWER SECTION: LIVE METRICS CHART & HOSTED DATABASES LIST -->
-    <div class="lower-grid">
-
-      <!-- LEFT: STATS.LOG TELEMETRY CHART -->
-      <section class="panel-card">
-        <div class="panel-header">
-          <div class="panel-title-wrap">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-bright)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-              <polyline points="17 6 23 6 23 12"></polyline>
-            </svg>
+    <!-- SLOW QUERY & CRITICAL BOTTLENECK ALERT BANNER -->
+    <div id="alert-banner" class="hidden tv-card-danger bg-rose-950/60 border border-rose-500/80 p-4 mb-5 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-tv-alert">
+        <div class="flex items-center gap-4">
+            <div class="p-3 bg-rose-600/30 rounded-2xl text-rose-400 font-black text-2xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
             <div>
-              <div class="panel-title">Live FM Server Performance Metrics (Stats.log)</div>
-              <div class="panel-subtitle">Track Elapsed Call Latency (ms) vs Host CPU (%) vs Active Users</div>
+                <h3 class="font-extrabold text-base md:text-lg text-rose-100 flex items-center gap-2" id="alert-banner-title">
+                    HIGH LATENCY WARNING: Slow Query / Sort Operation
+                </h3>
+                <p class="text-xs md:text-sm text-rose-200 font-mono mt-0.5" id="alert-banner-desc">
+                    Elapsed Time per Call spiked to 240 ms. User session sorting 'Spend' field in database.
+                </p>
             </div>
-          </div>
-
-          <div class="chart-legend">
-            <div class="legend-item" onclick="toggleSeries('elapsed')">
-              <span class="legend-dot dot-cyan"></span>
-              <span>Elapsed Call (ms)</span>
-            </div>
-            <div class="legend-item" onclick="toggleSeries('cpu')">
-              <span class="legend-dot dot-blue"></span>
-              <span>CPU Load (%)</span>
-            </div>
-            <div class="legend-item" onclick="toggleSeries('sessions')">
-              <span class="legend-dot dot-amber"></span>
-              <span>Active Sessions</span>
-            </div>
-          </div>
         </div>
-
-        <div class="chart-container" id="chartContainer">
-          <canvas id="telemetryCanvas"></canvas>
-          <div class="chart-tooltip" id="chartTooltip">
-            <div class="tooltip-time" id="tooltipTime">12:15:00 UTC</div>
-            <div class="tooltip-row" style="color:var(--cyan-bright);">
-              <span>Elapsed:</span>
-              <span id="tooltipElapsed">50.2 ms</span>
-            </div>
-            <div class="tooltip-row" style="color:#60a5fa;">
-              <span>CPU Load:</span>
-              <span id="tooltipCpu">65.4%</span>
-            </div>
-            <div class="tooltip-row" style="color:#fbbf24;">
-              <span>Sessions:</span>
-              <span id="tooltipSessions">38</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- RIGHT: HOSTED DATABASES (ADMIN API) -->
-      <section class="panel-card">
-        <div class="panel-header">
-          <div class="panel-title-wrap">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-            </svg>
-            <div>
-              <div class="panel-title">Hosted Databases (Admin API)</div>
-              <div class="panel-subtitle">Open Files &amp; Active Client Handles</div>
-            </div>
-          </div>
-          <div class="db-count-badge" id="dbCountBadge">4 Files</div>
-        </div>
-
-        <div class="db-list" id="databaseList">
-          <!-- Populated dynamically via JS -->
-        </div>
-      </section>
-
+        <button onclick="dismissAlert()" class="px-4 py-2 bg-rose-800 hover:bg-rose-700 text-xs font-black rounded-xl border border-rose-500/40 text-white transition shrink-0">
+            ACKNOWLEDGE
+        </button>
     </div>
 
-    
-    <!-- CONNECTED USERS & USAGE -->
-    <div class="user-usage-grid">
-      <!-- Left: Users List -->
-      <section class="panel-card">
-        <div class="panel-header" style="margin-bottom: 4px;">
-          <div class="panel-title-wrap">
-            <div class="panel-title" style="font-size: 16px;">5 Connected Users</div>
-          </div>
-        </div>
-        <div class="panel-tabs">
-          <div class="panel-tab active">System</div>
-          <div class="panel-tab">Network</div>
-          <div class="panel-tab">Processes</div>
-        </div>
+    <!-- MAIN KPI GRID (5 FM ENGINE METRICS + 3 HOST INFRASTRUCTURE METRICS) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-5">
         
-        <div class="user-list-header">
-          <span>Entity</span>
-          <span>CPU usage (%) &or;</span>
+        <!-- Metric 1: Elapsed Time per Call (CRITICAL FM METRIC) -->
+        <div id="card-elapsed" class="tv-card p-5 relative overflow-hidden transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-400">Elapsed Time / Call</span>
+                    <h2 class="text-3xl font-black font-mono text-cyan-400 mt-1" id="kpi-elapsed-val">4.2 <span class="text-xs text-slate-400 font-normal">ms</span></h2>
+                </div>
+                <div class="p-3 bg-cyan-500/10 text-cyan-400 rounded-2xl border border-cyan-500/20">
+                    <i class="fa-solid fa-stopwatch text-xl"></i>
+                </div>
+            </div>
+            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-2">
+                <div id="kpi-elapsed-bar" class="bg-cyan-500 h-full rounded-full transition-all duration-500" style="width: 15%"></div>
+            </div>
+            <div class="flex justify-between items-center text-[11px] font-mono text-slate-400">
+                <span>Threshold: &lt;20 ms</span>
+                <span id="kpi-elapsed-status" class="text-emerald-400 font-bold">NORMAL</span>
+            </div>
         </div>
-        <div id="usersListContainer">
-          <!-- JS will populate this -->
-        </div>
-      </section>
 
-      <!-- Right: Usage Charts -->
-      <section class="panel-card" style="padding-bottom: 0;">
-        <div class="multi-chart-container">
-          <div class="multi-chart-title">CPU usage (%)</div>
-          <canvas id="userCpuCanvas"></canvas>
+        <!-- Metric 2: Cache Hit Ratio (GOAL: >95%) -->
+        <div id="card-cache" class="tv-card p-5 relative overflow-hidden transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-400">Cache Hit Ratio</span>
+                    <h2 class="text-3xl font-black font-mono text-emerald-400 mt-1" id="kpi-cache-val">99.2%</h2>
+                </div>
+                <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-2xl border border-emerald-500/20">
+                    <i class="fa-solid fa-bolt text-xl"></i>
+                </div>
+            </div>
+            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-2">
+                <div id="kpi-cache-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 99.2%"></div>
+            </div>
+            <div class="flex justify-between items-center text-[11px] font-mono text-slate-400">
+                <span>Target: &gt;95.0%</span>
+                <span>Unsaved Cache: <strong id="kpi-unsaved-val" class="text-slate-200">1.2%</strong></span>
+            </div>
         </div>
-        <div class="multi-chart-container">
-          <div class="multi-chart-title">Memory usage (%)</div>
-          <canvas id="userMemCanvas"></canvas>
+
+        <!-- Metric 3: Remote Calls / sec & I/O Call Time -->
+        <div id="card-calls" class="tv-card p-5 relative overflow-hidden transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-400">Remote Calls / Sec</span>
+                    <h2 class="text-3xl font-black font-mono text-purple-400 mt-1" id="kpi-calls-val">184</h2>
+                </div>
+                <div class="p-3 bg-purple-500/10 text-purple-400 rounded-2xl border border-purple-500/20">
+                    <i class="fa-solid fa-network-wired text-xl"></i>
+                </div>
+            </div>
+            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-2">
+                <div id="kpi-calls-bar" class="bg-purple-500 h-full rounded-full transition-all duration-500" style="width: 40%"></div>
+            </div>
+            <div class="flex justify-between items-center text-[11px] font-mono text-slate-400">
+                <span>I/O Time/Call: <strong id="kpi-io-val" class="text-purple-300">0.8 ms</strong></span>
+                <span class="text-purple-400 font-bold">ACTIVE</span>
+            </div>
         </div>
-      </section>
+
+        <!-- Metric 4: Concurrent Sessions vs License Limit -->
+        <div id="card-users" class="tv-card p-5 relative overflow-hidden transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-400">Active Sessions</span>
+                    <h2 class="text-3xl font-black font-mono text-white mt-1" id="kpi-users-total">38 <span class="text-xs text-slate-400 font-normal">/ 100</span></h2>
+                </div>
+                <div class="p-3 bg-amber-500/10 text-amber-400 rounded-2xl border border-amber-500/20">
+                    <i class="fa-solid fa-users text-xl"></i>
+                </div>
+            </div>
+            <!-- Segmented User Bar -->
+            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-2 flex">
+                <div id="kpi-users-pro-bar" class="bg-cyan-500 h-full" style="width: 50%" title="FileMaker Pro/Go"></div>
+                <div id="kpi-users-web-bar" class="bg-amber-500 h-full" style="width: 35%" title="WebDirect"></div>
+                <div id="kpi-users-api-bar" class="bg-purple-500 h-full" style="width: 15%" title="Data API / n8n"></div>
+            </div>
+            <div class="flex justify-between items-center text-[10px] font-mono text-slate-400">
+                <span class="text-cyan-400">Pro: <strong id="kpi-users-pro">20</strong></span>
+                <span class="text-amber-400">WebDirect: <strong id="kpi-users-web">12</strong></span>
+                <span class="text-purple-400">API/n8n: <strong id="kpi-users-api">6</strong></span>
+            </div>
+        </div>
+
+        <!-- Metric 5: Host CPU Usage -->
+        <div id="card-cpu" class="tv-card p-5 relative overflow-hidden transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-400">Host CPU Utilization</span>
+                    <h2 class="text-3xl font-black font-mono text-white mt-1" id="kpi-cpu-val">28.4%</h2>
+                </div>
+                <div class="p-3 bg-blue-500/10 text-blue-400 rounded-2xl border border-blue-500/20">
+                    <i class="fa-solid fa-microchip text-xl"></i>
+                </div>
+            </div>
+            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-2">
+                <div id="kpi-cpu-bar" class="bg-blue-500 h-full rounded-full transition-all duration-500" style="width: 28.4%"></div>
+            </div>
+            <div class="flex justify-between items-center text-[11px] font-mono text-slate-400">
+                <span>12 Cores / 24 Threads</span>
+                <span id="kpi-cpu-status" class="text-blue-400 font-bold">HEALTHY</span>
+            </div>
+        </div>
+
+        <!-- Metric 6: Host Memory (RAM) Usage -->
+        <div id="card-ram" class="tv-card p-5 relative overflow-hidden transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-400">Host RAM Allocation</span>
+                    <h2 class="text-3xl font-black font-mono text-white mt-1" id="kpi-ram-val">22.8 GB</h2>
+                </div>
+                <div class="p-3 bg-indigo-500/10 text-indigo-400 rounded-2xl border border-indigo-500/20">
+                    <i class="fa-solid fa-memory text-xl"></i>
+                </div>
+            </div>
+            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-2">
+                <div id="kpi-ram-bar" class="bg-indigo-500 h-full rounded-full transition-all duration-500" style="width: 35.6%"></div>
+            </div>
+            <div class="flex justify-between items-center text-[11px] font-mono text-slate-400">
+                <span>Capacity: <strong id="kpi-ram-total" class="text-slate-200">64 GB</strong></span>
+                <span id="kpi-ram-pct" class="text-indigo-400 font-bold">35.6%</span>
+            </div>
+        </div>
+
+        <!-- Metric 7: Disk Storage Capacity -->
+        <div id="card-disk" class="tv-card p-5 relative overflow-hidden transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-400">Disk Storage Usage</span>
+                    <h2 class="text-3xl font-black font-mono text-white mt-1" id="kpi-disk-val">412 GB</h2>
+                </div>
+                <div class="p-3 bg-teal-500/10 text-teal-400 rounded-2xl border border-teal-500/20">
+                    <i class="fa-solid fa-hard-drive text-xl"></i>
+                </div>
+            </div>
+            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-2">
+                <div id="kpi-disk-bar" class="bg-teal-500 h-full rounded-full transition-all duration-500" style="width: 40.2%"></div>
+            </div>
+            <div class="flex justify-between items-center text-[11px] font-mono text-slate-400">
+                <span>Free: <strong id="kpi-disk-free" class="text-slate-200">612 GB</strong></span>
+                <span id="kpi-disk-pct" class="text-teal-400 font-bold">40.2%</span>
+            </div>
+        </div>
+
+        <!-- Metric 8: Network Throughput -->
+        <div id="card-net" class="tv-card p-5 relative overflow-hidden transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-400">Network Bandwidth</span>
+                    <h2 class="text-3xl font-black font-mono text-white mt-1" id="kpi-net-val">32.4 <span class="text-xs text-slate-400 font-normal">MB/s</span></h2>
+                </div>
+                <div class="p-3 bg-sky-500/10 text-sky-400 rounded-2xl border border-sky-500/20">
+                    <i class="fa-solid fa-arrow-up-right-dots text-xl"></i>
+                </div>
+            </div>
+            <div class="w-full bg-slate-900 h-2 rounded-full overflow-hidden mb-2">
+                <div id="kpi-net-bar" class="bg-sky-500 h-full rounded-full transition-all duration-500" style="width: 45%"></div>
+            </div>
+            <div class="flex justify-between items-center text-[11px] font-mono text-slate-400">
+                <span>In: <strong id="kpi-net-in" class="text-emerald-400">10.2 MB/s</strong></span>
+                <span>Out: <strong id="kpi-net-out" class="text-sky-400">22.2 MB/s</strong></span>
+            </div>
+        </div>
+
     </div>
 
-    <!-- BOTTOM AUTOMATION & BRIDGE STATUS BAR -->
-    <footer class="bottom-bar">
-      <div class="n8n-status-wrap">
-        <span class="n8n-tag">N8N WORKFLOW</span>
-        <span>Workflow: <strong style="color:#fff;" id="n8nWorkflowName">FMS-Telemetry-Poller-v2</strong></span>
-        <span>•</span>
-        <span>Next Influx: <span style="color:var(--cyan-bright);" id="nextPollCountdown">3s</span></span>
-        <span>•</span>
-        <span>Bridge: <span style="color:#34d399;" id="bridgeStatus">FileMaker.PerformScript Ready</span></span>
-      </div>
-
-      <div class="bottom-controls">
-        <button class="btn-action" onclick="simulateSpike()" title="Simulate a sudden latency spike to test alert triggers">
-          ⚡ Trigger Latency Spike
-        </button>
-        <button class="btn-action" onclick="exportDataJson()" title="Export current state as JSON payload">
-          ⤓ Export JSON
-        </button>
-        <button class="btn-action" onclick="openIntegrationModal()">
-          🔗 FileMaker &amp; n8n Setup
-        </button>
-      </div>
-    </footer>
-
-  </div>
-
-  <!-- INTEGRATION & SETTINGS MODAL -->
-  <div class="modal-overlay" id="integrationModal">
-    <div class="modal-window">
-      <div class="modal-header">
-        <div class="modal-title">FileMaker &amp; N8N Integration Details</div>
-        <button class="modal-close" onclick="closeIntegrationModal()">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p style="color:var(--text-muted); font-size:12px;">
-          This dashboard is optimized for seamless bidirectional communication inside a <strong>FileMaker WebViewer</strong> or via <strong>n8n workflow webhooks</strong>.
-        </p>
-
-        <div class="form-group">
-          <label>1. Inject Data from FileMaker into this WebViewer:</label>
-          <div class="code-snippet"># FileMaker Script Step:
-Perform JavaScript in Web Viewer [
-  Object Name: "FMS_Viewer" ;
-  Function Name: "window.setFMSData" ;
-  Parameters: JSONSetElement ( "{}" ; 
-    [ "elapsed" ; 50.2 ; JSONNumber ] ; 
-    [ "cache" ; 99.2 ; JSONNumber ] ;
-    [ "cpu" ; 65.4 ; JSONNumber ] ;
-    [ "sessions" ; 38 ; JSONNumber ] ;
-    [ "alert" ; "Latency Spike on Procurement" ; JSONString ]
-  )
-]</div>
+    <!-- MIDDLE SECTION: REAL-TIME PERFORMANCE CHART & HOSTED DATABASES -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+        
+        <!-- Performance Trend Line Chart (2 Columns) -->
+        <div class="lg:col-span-2 tv-card p-5 flex flex-col justify-between">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+                <div>
+                    <h3 class="text-lg font-black text-white flex items-center gap-2">
+                        <i class="fa-solid fa-chart-area text-cyan-400"></i>
+                        Live FM Server Performance Metrics (Stats.log)
+                    </h3>
+                    <p class="text-xs text-slate-400">Track Elapsed Call Latency (ms) vs Host CPU (%) vs Active Users</p>
+                </div>
+                <div class="flex items-center gap-4 text-xs font-mono">
+                    <span class="flex items-center gap-1.5 text-cyan-400 font-bold">
+                        <span class="w-3 h-3 rounded-full bg-cyan-400 inline-block"></span> Elapsed Call (ms)
+                    </span>
+                    <span class="flex items-center gap-1.5 text-blue-400 font-bold">
+                        <span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> CPU Load (%)
+                    </span>
+                    <span class="flex items-center gap-1.5 text-amber-400 font-bold">
+                        <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> Active Sessions
+                    </span>
+                </div>
+            </div>
+            <div class="relative w-full h-[280px]">
+                <canvas id="fmsPerfChart"></canvas>
+            </div>
         </div>
 
-        <div class="form-group">
-          <label>2. FileMaker Callback from UI Buttons:</label>
-          <div class="code-snippet">// Clicking "ACKNOWLEDGE", "Sync", or Database cards triggers:
-FileMaker.PerformScriptWithOption(
-  "FMS_HandleDashboardAction", 
-  JSON.stringify({ action: "ACKNOWLEDGE_SPIKE", timestamp: Date.now() }), 
-  0
-);</div>
+        <!-- Hosted Databases Status Panel (1 Column) -->
+        <div class="tv-card p-5 flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-black text-white flex items-center gap-2">
+                        <i class="fa-solid fa-database text-amber-400"></i>
+                        Hosted Databases (Admin API)
+                    </h3>
+                    <span id="db-total-badge" class="text-xs font-mono font-bold bg-slate-900 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-800">
+                        4 Files
+                    </span>
+                </div>
+
+                <!-- Database File List Container -->
+                <div id="database-list-container" class="space-y-3 max-h-[240px] overflow-y-auto pr-1">
+                    <!-- Dynamic Databases Injected Here -->
+                </div>
+            </div>
+
+            <!-- Backup & Script Engine Summary Footer -->
+            <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center text-xs font-mono">
+                <span class="text-slate-400">Scheduled Backups:</span>
+                <span class="text-emerald-400 font-bold flex items-center gap-1">
+                    <i class="fa-solid fa-circle-check text-xs"></i> 03:00 UTC (OK)
+                </span>
+            </div>
         </div>
 
-        <div class="form-group">
-          <label>3. Optional: Direct N8N Webhook Endpoint (Polling / Push)</label>
-          <input type="text" id="n8nWebhookInput" placeholder="https://your-n8n-instance.com/webhook/fms-stats" value="">
-          <small style="color:var(--text-dim); font-size:10px;">When populated, dashboard can directly poll or post status to your n8n workflow.</small>
-        </div>
-
-        <div class="form-group">
-          <label>4. WebViewer Data URL (Embed in FileMaker):</label>
-          <div class="code-snippet">"data:text/html;charset=utf-8," & GetAsURLEncoded ( FMS_Dashboard_Table::HTML_Code )</div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-action" onclick="copyIntegrationCode()">Copy FM Script Step</button>
-        <button class="btn-action" style="background:#0284c7; border-color:#38bdf8;" onclick="saveSettings()">Save Settings</button>
-      </div>
     </div>
-  </div>
 
-  <!-- TOAST NOTIFICATION -->
-  <div class="toast-notice" id="toastNotice">Action Completed</div>
+    <!-- LOWER SECTION: LIVE EVENT & BOTTLENECK LOG CONSOLE -->
+    <div class="tv-card p-5">
+        <div class="flex justify-between items-center mb-3">
+            <h3 class="text-base font-black text-white flex items-center gap-2">
+                <i class="fa-solid fa-terminal text-cyan-400"></i>
+                FileMaker Event Log & Bottleneck Console (Admin API & Stats.log)
+            </h3>
+            <button onclick="clearConsoleLogs()" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 rounded-lg border border-slate-700 transition">
+                Clear Console
+            </button>
+        </div>
 
-  <!-- CORE SCRIPT LOGIC -->
-  <script>
-    /* ==========================================================================
-       1. STATE MANAGEMENT & DATA MODEL
-       ========================================================================== */
-    const state = {
-      simMode: true,
-      currentEnv: 'Hitachi Prod',
-      serverHost: 'https://hitachi.master-bom.com',
-      lastSync: new Date(),
-      pollInterval: 3000,
-      nextPollSec: 3,
-      n8nWebhookUrl: '',
-      hasSpike: true,
-      alert: {
-        active: true,
-        title: "LATENCY SPIKE DETECTED: 50.2 ms / Call",
-        desc: "Heavy calculation or unindexed sort on field 'Spend' in procurement tables.",
-        metric: 50.2
-      },
-      metrics: {
-        elapsed: 50.2,
-        elapsedThreshold: 20.0,
-        cacheHit: 99.2,
-        unsavedCache: 1.2,
-        remoteCalls: 171,
-        ioTime: 0.8,
-        sessions: 38,
-        sessionsMax: 100,
-        breakdown: { pro: 20, web: 12, api: 6 },
-        cpu: 65.4,
-        cores: "12 Cores / 24 Threads",
-        ramUsed: 22.8,
-        ramTotal: 64.0,
-        diskUsed: 412,
-        diskTotal: 1024,
-        netTotal: 32.4,
-        netIn: 10.2,
-        netOut: 22.2
-      },
-      databases: [
-        { name: "Master_BOM_Prod.fmp12", size: "142 GB", clients: 18, status: "NORMAL" },
-        { name: "Hitachi_Orders.fmp12", size: "88 GB", clients: 10, status: "NORMAL" },
-        { name: "Inventory_Control.fmp12", size: "64 GB", clients: 6, status: "NORMAL" },
-        { name: "Procurement_Data.fmp12", size: "51 GB", clients: 4, status: "NORMAL" }
-      ],
-      connectedUsers: [
-        { name: "host-proxy-east-2", cpu: 23.62, color: "#3b82f6" },
-        { name: "host-proxy-east-0", cpu: 18.79, color: "#10b981" },
-        { name: "ip-172-20-37-165.internal", cpu: 12.45, color: "#8b5cf6" },
-        { name: "ip-172-20-62-216.internal", cpu: 7.98, color: "#f59e0b" },
-        { name: "host-proxy-east-1", cpu: 1.12, color: "#00e5ff" }
-      ],
-      userHistory: {
-        timestamps: [],
-        cpu: [
-          [20, 22, 25, 23, 21, 28, 30, 25, 24, 23, 23, 22, 23.62],
-          [15, 17, 18, 16, 17, 20, 22, 19, 18, 17, 18, 18, 18.79],
-          [10, 11, 10, 12, 11, 14, 15, 13, 12, 11, 12, 12, 12.45],
-          [5, 6, 5, 7, 6, 8, 9, 7, 6, 5, 6, 7, 7.98],
-          [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.12]
-        ],
-        mem: [
-          [50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50],
-          [10, 15, 20, 25, 30, 40, 50, 60, 65, 70, 75, 80, 85],
-          [2, 5, 10, 15, 25, 35, 45, 55, 65, 70, 75, 85, 95],
-          [40, 42, 43, 44, 45, 43, 42, 41, 42, 43, 44, 45, 46],
-          [50, 51, 50, 51, 50, 50, 50, 51, 50, 51, 50, 50, 50]
-        ]
-      },
-      // History for time-series canvas graph (24 datapoints)
-      history: {
-        timestamps: [],
-        elapsed: [12, 14, 11, 15, 13, 14, 16, 15, 14, 16, 15, 18, 14, 13, 15, 16, 17, 25, 42, 52, 48, 50, 49, 50.2],
-        cpu:     [25, 28, 22, 26, 24, 25, 27, 26, 25, 28, 26, 30, 26, 25, 28, 30, 32, 45, 58, 68, 62, 64, 63, 65.4],
-        sessions:[38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38, 38]
-      },
-      visibleSeries: {
-        elapsed: true,
-        cpu: true,
-        sessions: true
-      }
-    };
+        <div id="log-console" class="bg-slate-950/90 border border-slate-800/80 rounded-xl p-3.5 font-mono text-xs overflow-y-auto h-[180px] space-y-2">
+            <!-- Dynamic Logs Injected Here -->
+        </div>
+    </div>
 
-    // Pre-populate timestamps backward from now
-    function initTimestamps() {
-      const now = Date.now();
-      state.history.timestamps = [];
-      for (let i = 23; i >= 0; i--) {
-        const d = new Date(now - i * 5000);
-        state.history.timestamps.push(d.toTimeString().split(' ')[0]);
-      }
-    }
-    initTimestamps();
-
-    /* ==========================================================================
-       2. CANVAS REAL-TIME TELEMETRY GRAPH
-       ========================================================================== */
-    const canvas = document.getElementById('telemetryCanvas');
-    const ctx = canvas.getContext('2d');
-    const tooltip = document.getElementById('chartTooltip');
-
-    function resizeCanvas() {
-      const container = canvas.parentElement;
-      const rect = container.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.resetTransform && ctx.resetTransform();
-      ctx.scale(dpr, dpr);
-      renderChart();
-      renderSmallChart('userCpuCanvas', state.userHistory.cpu, 40);
-      renderSmallChart('userMemCanvas', state.userHistory.mem, 100);
-    }
-
-    function renderChart() {
-      const container = canvas.parentElement;
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      if (w <= 0 || h <= 0) return;
-
-      ctx.clearRect(0, 0, w, h);
-
-      const padLeft = 45;
-      const padRight = 45;
-      const padTop = 20;
-      const padBottom = 30;
-      const graphW = w - padLeft - padRight;
-      const graphH = h - padTop - padBottom;
-
-      // Draw Grid Lines (Horizontal)
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-      ctx.lineWidth = 1;
-      ctx.setLineDash([]);
-
-      const yTicks = 5; // 0, 20, 40, 60, 80, 100
-      ctx.fillStyle = "rgba(148, 163, 184, 0.6)";
-      ctx.font = "10px ui-monospace, Menlo, Consolas, monospace";
-      ctx.textAlign = "right";
-
-      for (let i = 0; i <= yTicks; i++) {
-        const y = padTop + (graphH / yTicks) * i;
-        ctx.beginPath();
-        ctx.moveTo(padLeft, y);
-        ctx.lineTo(w - padRight, y);
-        ctx.stroke();
-
-        // Left Axis: Latency ms (0 to 60)
-        const msVal = Math.round(60 - (60 / yTicks) * i);
-        ctx.fillText(msVal, padLeft - 8, y + 3);
-
-        // Right Axis: Percent / Sessions (0 to 100)
-        ctx.textAlign = "left";
-        const pctVal = Math.round(100 - (100 / yTicks) * i);
-        ctx.fillText(pctVal, w - padRight + 8, y + 3);
-        ctx.textAlign = "right";
-      }
-
-      // Axis Titles
-      ctx.save();
-      ctx.fillStyle = "#00e5ff";
-      ctx.font = "9px ui-monospace, Menlo, monospace";
-      ctx.translate(12, padTop + graphH / 2);
-      ctx.rotate(-Math.PI / 2);
-      ctx.textAlign = "center";
-      ctx.fillText("Elapsed Latency (ms)", 0, 0);
-      ctx.restore();
-
-      ctx.save();
-      ctx.fillStyle = "#94a3b8";
-      ctx.font = "9px ui-monospace, Menlo, monospace";
-      ctx.translate(w - 12, padTop + graphH / 2);
-      ctx.rotate(Math.PI / 2);
-      ctx.textAlign = "center";
-      ctx.fillText("CPU % / Active Users", 0, 0);
-      ctx.restore();
-
-      const n = state.history.elapsed.length;
-      if (n === 0) return;
-      const stepX = graphW / (n - 1);
-
-      // Helper function to plot a line series
-      function drawSeries(data, color, maxScale, isDashed = false, fillGradient = null) {
-        const points = data.map((val, idx) => {
-          const x = padLeft + idx * stepX;
-          const ratio = Math.min(Math.max(val / maxScale, 0), 1);
-          const y = padTop + graphH - ratio * graphH;
-          return { x, y, val };
-        });
-
-        // Fill area under curve if requested
-        if (fillGradient) {
-          ctx.beginPath();
-          ctx.moveTo(points[0].x, padTop + graphH);
-          points.forEach((pt, idx) => {
-            if (idx === 0) ctx.lineTo(pt.x, pt.y);
-            else {
-              const prev = points[idx - 1];
-              const cx = (prev.x + pt.x) / 2;
-              ctx.bezierCurveTo(cx, prev.y, cx, pt.y, pt.x, pt.y);
+    <script>
+        // FileMaker Server Mock Datasets
+        const fmsServers = {
+            hitachi: {
+                name: "Hitachi Production",
+                url: "https://hitachi.master-bom.com",
+                elapsedMs: 4.2,
+                cacheHit: 99.2,
+                unsavedCache: 1.2,
+                remoteCalls: 184,
+                ioMs: 0.8,
+                usersTotal: 38,
+                usersMax: 100,
+                usersPro: 20,
+                usersWeb: 12,
+                usersApi: 6,
+                cpuPct: 28.4,
+                ramGB: 22.8,
+                ramTotalGB: 64,
+                diskGB: 412,
+                diskTotalGB: 1024,
+                netMB: 32.4,
+                netInMB: 10.2,
+                netOutMB: 22.2,
+                dbStatus: "RUNNING",
+                wpeStatus: "RUNNING",
+                dapiStatus: "ACTIVE",
+                databases: [
+                    { name: "Master_BOM_Prod.fmp12", size: "142 GB", clients: 18, status: "NORMAL" },
+                    { name: "Hitachi_Orders.fmp12", size: "88 GB", clients: 10, status: "NORMAL" },
+                    { name: "Inventory_Control.fmp12", size: "64 GB", clients: 6, status: "NORMAL" },
+                    { name: "Procurement_Spend.fmp12", size: "118 GB", clients: 4, status: "SLOW SORT" }
+                ]
+            },
+            demo: {
+                name: "Demo Environment",
+                url: "https://demo.master-bom.com",
+                elapsedMs: 1.8,
+                cacheHit: 99.9,
+                unsavedCache: 0.4,
+                remoteCalls: 42,
+                ioMs: 0.2,
+                usersTotal: 8,
+                usersMax: 50,
+                usersPro: 4,
+                usersWeb: 3,
+                usersApi: 1,
+                cpuPct: 12.1,
+                ramGB: 8.4,
+                ramTotalGB: 32,
+                diskGB: 140,
+                diskTotalGB: 512,
+                netMB: 6.5,
+                netInMB: 2.1,
+                netOutMB: 4.4,
+                dbStatus: "RUNNING",
+                wpeStatus: "RUNNING",
+                dapiStatus: "ACTIVE",
+                databases: [
+                    { name: "Demo_BOM_Test.fmp12", size: "45 GB", clients: 5, status: "NORMAL" },
+                    { name: "Sandbox_Dev.fmp12", size: "22 GB", clients: 3, status: "NORMAL" }
+                ]
             }
-          });
-          ctx.lineTo(points[points.length - 1].x, padTop + graphH);
-          ctx.closePath();
-          ctx.fillStyle = fillGradient;
-          ctx.fill();
+        };
+
+        let currentServerKey = 'hitachi';
+        let simulationActive = true;
+        let lastUpdateTime = Date.now();
+        let chartInstance = null;
+        let chartLabels = [];
+        let chartElapsedData = [];
+        let chartCpuData = [];
+        let chartUsersData = [];
+
+        // Initialize Real-time Chart
+        function initFmsChart() {
+            const ctx = document.getElementById('fmsPerfChart').getContext('2d');
+            const now = new Date();
+
+            for (let i = 12; i >= 0; i--) {
+                const time = new Date(now.getTime() - i * 3000);
+                chartLabels.push(time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+                chartElapsedData.push(Math.random() * 5 + 2);
+                chartCpuData.push(Math.random() * 15 + 20);
+                chartUsersData.push(38);
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [
+                        {
+                            label: 'Elapsed Call Time (ms)',
+                            data: chartElapsedData,
+                            borderColor: '#06b6d4',
+                            backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.3,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Host CPU (%)',
+                            data: chartCpuData,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.3,
+                            yAxisID: 'y1'
+                        },
+                        {
+                            label: 'Active Sessions',
+                            data: chartUsersData,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            tension: 0.1,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 400 },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Elapsed Latency (ms)', color: '#06b6d4' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#06b6d4', font: { family: 'JetBrains Mono', size: 10 } }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            min: 0,
+                            max: 100,
+                            title: { display: true, text: 'CPU % / Active Users', color: '#64748b' },
+                            grid: { drawOnChartArea: false },
+                            ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
         }
 
-        // Draw Line
-        ctx.beginPath();
-        if (isDashed) {
-          ctx.setLineDash([4, 4]);
-        } else {
-          ctx.setLineDash([]);
-        }
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2.4;
+        // Render Dashboard Visual State
+        function renderDashboard() {
+            const data = fmsServers[currentServerKey];
 
-        points.forEach((pt, idx) => {
-          if (idx === 0) ctx.moveTo(pt.x, pt.y);
-          else {
-            const prev = points[idx - 1];
-            const cx = (prev.x + pt.x) / 2;
-            ctx.bezierCurveTo(cx, prev.y, cx, pt.y, pt.x, pt.y);
-          }
-        });
-        ctx.stroke();
+            // Header Elements
+            document.getElementById('active-server-url').innerText = data.url;
 
-        // Draw Points
-        ctx.setLineDash([]);
-        points.forEach(pt => {
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
-          ctx.fillStyle = color;
-          ctx.fill();
-          ctx.strokeStyle = "#0c121e";
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-        });
+            // Engine Badges
+            document.getElementById('engine-db-status').innerText = data.dbStatus;
+            document.getElementById('engine-wpe-status').innerText = data.wpeStatus;
+            document.getElementById('engine-dapi-status').innerText = data.dapiStatus;
 
-        return points;
-      }
+            // Metric 1: Elapsed Call Time
+            document.getElementById('kpi-elapsed-val').innerHTML = `${data.elapsedMs.toFixed(1)} <span class="text-xs text-slate-400 font-normal">ms</span>`;
+            document.getElementById('kpi-elapsed-bar').style.width = `${Math.min((data.elapsedMs / 50) * 100, 100)}%`;
+            
+            const cardElapsed = document.getElementById('card-elapsed');
+            if (data.elapsedMs > 20) {
+                cardElapsed.classList.add('tv-card-danger');
+                document.getElementById('kpi-elapsed-status').innerText = "SPIKE DETECTED";
+                document.getElementById('kpi-elapsed-status').className = "text-rose-400 font-bold";
+            } else {
+                cardElapsed.classList.remove('tv-card-danger');
+                document.getElementById('kpi-elapsed-status').innerText = "NORMAL";
+                document.getElementById('kpi-elapsed-status').className = "text-emerald-400 font-bold";
+            }
 
-      // 1. Elapsed Call (ms) - Cyan (Scale: 60ms)
-      if (state.visibleSeries.elapsed) {
-        const gradElapsed = ctx.createLinearGradient(0, padTop, 0, padTop + graphH);
-        gradElapsed.addColorStop(0, "rgba(0, 229, 255, 0.22)");
-        gradElapsed.addColorStop(1, "rgba(0, 229, 255, 0.0)");
-        drawSeries(state.history.elapsed, "#00e5ff", 60, false, gradElapsed);
-      }
+            // Metric 2: Cache Hit
+            document.getElementById('kpi-cache-val').innerText = `${data.cacheHit.toFixed(1)}%`;
+            document.getElementById('kpi-cache-bar').style.width = `${data.cacheHit}%`;
+            document.getElementById('kpi-unsaved-val').innerText = `${data.unsavedCache.toFixed(1)}%`;
 
-      // 2. CPU Load (%) - Blue Dashed (Scale: 100%)
-      if (state.visibleSeries.cpu) {
-        drawSeries(state.history.cpu, "#3b82f6", 100, true);
-      }
+            // Metric 3: Remote Calls
+            document.getElementById('kpi-calls-val').innerText = data.remoteCalls;
+            document.getElementById('kpi-io-val').innerText = `${data.ioMs.toFixed(1)} ms`;
 
-      // 3. Active Sessions - Amber (Scale: 100)
-      if (state.visibleSeries.sessions) {
-        drawSeries(state.history.sessions, "#f59e0b", 100, false);
-      }
-    }
+            // Metric 4: Sessions
+            document.getElementById('kpi-users-total').innerHTML = `${data.usersTotal} <span class="text-xs text-slate-400 font-normal">/ ${data.usersMax}</span>`;
+            document.getElementById('kpi-users-pro').innerText = data.usersPro;
+            document.getElementById('kpi-users-web').innerText = data.usersWeb;
+            document.getElementById('kpi-users-api').innerText = data.usersApi;
 
-    // Interactive Hover on Canvas
-    canvas.addEventListener('mousemove', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const containerW = rect.width;
-      const padLeft = 45;
-      const padRight = 45;
-      const graphW = containerW - padLeft - padRight;
-      const n = state.history.elapsed.length;
+            document.getElementById('kpi-users-pro-bar').style.width = `${(data.usersPro / data.usersTotal) * 100}%`;
+            document.getElementById('kpi-users-web-bar').style.width = `${(data.usersWeb / data.usersTotal) * 100}%`;
+            document.getElementById('kpi-users-api-bar').style.width = `${(data.usersApi / data.usersTotal) * 100}%`;
 
-      if (mouseX < padLeft || mouseX > containerW - padRight) {
-        tooltip.style.display = 'none';
-        return;
-      }
+            // Metric 5: CPU
+            document.getElementById('kpi-cpu-val').innerText = `${data.cpuPct.toFixed(1)}%`;
+            document.getElementById('kpi-cpu-bar').style.width = `${data.cpuPct}%`;
 
-      const ratio = (mouseX - padLeft) / graphW;
-      const idx = Math.min(Math.max(Math.round(ratio * (n - 1)), 0), n - 1);
+            // Metric 6: RAM
+            const ramPct = ((data.ramGB / data.ramTotalGB) * 100).toFixed(1);
+            document.getElementById('kpi-ram-val').innerText = `${data.ramGB.toFixed(1)} GB`;
+            document.getElementById('kpi-ram-total').innerText = `${data.ramTotalGB} GB`;
+            document.getElementById('kpi-ram-bar').style.width = `${ramPct}%`;
+            document.getElementById('kpi-ram-pct').innerText = `${ramPct}%`;
 
-      const time = state.history.timestamps[idx] || "Recent";
-      const elap = state.history.elapsed[idx];
-      const cpu = state.history.cpu[idx];
-      const sess = state.history.sessions[idx];
+            // Metric 7: Storage
+            const diskPct = ((data.diskGB / data.diskTotalGB) * 100).toFixed(1);
+            document.getElementById('kpi-disk-val').innerText = `${data.diskGB} GB`;
+            document.getElementById('kpi-disk-free').innerText = `${data.diskTotalGB - data.diskGB} GB`;
+            document.getElementById('kpi-disk-bar').style.width = `${diskPct}%`;
+            document.getElementById('kpi-disk-pct').innerText = `${diskPct}%`;
 
-      document.getElementById('tooltipTime').innerText = `${time} UTC`;
-      document.getElementById('tooltipElapsed').innerText = `${elap} ms`;
-      document.getElementById('tooltipCpu').innerText = `${cpu}%`;
-      document.getElementById('tooltipSessions').innerText = `${sess}`;
+            // Metric 8: Network
+            document.getElementById('kpi-net-val').innerHTML = `${data.netMB.toFixed(1)} <span class="text-xs text-slate-400 font-normal">MB/s</span>`;
+            document.getElementById('kpi-net-in').innerText = `${data.netInMB.toFixed(1)} MB/s`;
+            document.getElementById('kpi-net-out').innerText = `${data.netOutMB.toFixed(1)} MB/s`;
 
-      tooltip.style.display = 'block';
-      let tooltipX = mouseX + 15;
-      if (tooltipX + 160 > containerW) tooltipX = mouseX - 160;
-      tooltip.style.left = `${tooltipX}px`;
-      tooltip.style.top = `${Math.max(10, e.clientY - rect.top - 40)}px`;
-    });
+            // Databases List
+            document.getElementById('db-total-badge').innerText = `${data.databases.length} Files`;
+            const dbContainer = document.getElementById('database-list-container');
+            dbContainer.innerHTML = '';
 
-    canvas.parentElement.addEventListener('mouseleave', () => {
-      tooltip.style.display = 'none';
-    });
+            data.databases.forEach(db => {
+                const isWarning = db.status.includes('SORT') || db.status.includes('SLOW');
+                const badgeStyle = isWarning ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40';
 
-    window.addEventListener('resize', resizeCanvas);
+                dbContainer.innerHTML += `
+                    <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-file-invoice text-slate-400"></i>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-100">${db.name}</h4>
+                                <span class="text-[10px] text-slate-400 font-mono">${db.size} • ${db.clients} Clients</span>
+                            </div>
+                        </div>
+                        <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded border ${badgeStyle}">${db.status}</span>
+                    </div>
+                `;
+            });
 
-    /* ==========================================================================
-       3. DOM UPDATING & DATA RENDERING
-       ========================================================================== */
-    
-    /* ==========================================================================
-       USER USAGE CHARTS & LIST
-       ========================================================================== */
-    function renderUserList() {
-      const container = document.getElementById('usersListContainer');
-      if (!container) return;
-      container.innerHTML = state.connectedUsers.map(user => `
-        <div class="user-list-row">
-          <div class="user-entity-col">
-            <div class="status-check"></div>
-            <div class="user-color-dot" style="background: ${user.color}; box-shadow: 0 0 6px ${user.color}"></div>
-            <div class="user-name" title="${user.name}">${user.name}</div>
-          </div>
-          <div class="user-metric-col">${user.cpu.toFixed(2)} %</div>
-        </div>
-      `).join('');
-    }
+            // Update Last Sync
+            document.getElementById('last-sync-time').innerText = new Date().toLocaleTimeString();
+            lastUpdateTime = Date.now();
+            document.getElementById('stale-badge').classList.add('hidden');
 
-    function renderSmallChart(canvasId, dataMatrix, maxVal) {
-      const cvs = document.getElementById(canvasId);
-      if (!cvs) return;
-      const ctx = cvs.getContext('2d');
-      const rect = cvs.parentElement.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      
-      cvs.width = rect.width * dpr;
-      cvs.height = rect.height * dpr;
-      ctx.resetTransform && ctx.resetTransform();
-      ctx.scale(dpr, dpr);
-
-      const w = rect.width;
-      const h = rect.height;
-      ctx.clearRect(0, 0, w, h);
-
-      const padLeft = 30;
-      const padRight = 10;
-      const padTop = 35;
-      const padBottom = 20;
-      const graphW = w - padLeft - padRight;
-      const graphH = h - padTop - padBottom;
-
-      // Draw Y grid
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
-      ctx.lineWidth = 1;
-      ctx.fillStyle = "rgba(148, 163, 184, 0.6)";
-      ctx.font = "9px ui-monospace, monospace";
-      ctx.textAlign = "right";
-
-      const yTicks = 4;
-      for (let i = 0; i <= yTicks; i++) {
-        const y = padTop + (graphH / yTicks) * i;
-        ctx.beginPath();
-        ctx.moveTo(padLeft, y);
-        ctx.lineTo(w - padRight, y);
-        ctx.stroke();
-        
-        const val = Math.round(maxVal - (maxVal / yTicks) * i);
-        ctx.fillText(val, padLeft - 6, y + 3);
-      }
-      
-      // Draw time labels (X axis mock)
-      ctx.textAlign = "center";
-      ctx.fillText("01:30 PM", padLeft + graphW*0.33, h - 5);
-      ctx.fillText("02:00 PM", padLeft + graphW*0.83, h - 5);
-
-      const n = dataMatrix[0].length;
-      if (n === 0) return;
-      const stepX = graphW / (n - 1);
-
-      dataMatrix.forEach((series, sIdx) => {
-        const color = state.connectedUsers[sIdx].color;
-        ctx.beginPath();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1.5;
-        
-        series.forEach((val, idx) => {
-          const x = padLeft + idx * stepX;
-          const ratio = Math.min(Math.max(val / maxVal, 0), 1);
-          const y = padTop + graphH - ratio * graphH;
-          if (idx === 0) ctx.moveTo(x, y);
-          else {
-            const prevX = padLeft + (idx - 1) * stepX;
-            const prevVal = series[idx - 1];
-            const prevRatio = Math.min(Math.max(prevVal / maxVal, 0), 1);
-            const prevY = padTop + graphH - prevRatio * graphH;
-            const cx = (prevX + x) / 2;
-            ctx.bezierCurveTo(cx, prevY, cx, y, x, y);
-          }
-        });
-        ctx.stroke();
-      });
-    }
-
-    function updateUserUsage() {
-      // simulate new data
-      state.connectedUsers.forEach((u, i) => {
-        u.cpu = Math.max(0, u.cpu + (Math.random() * 4 - 2));
-        
-        state.userHistory.cpu[i].shift();
-        state.userHistory.cpu[i].push(u.cpu);
-
-        let lastMem = state.userHistory.mem[i][state.userHistory.mem[i].length - 1];
-        let newMem = Math.min(100, Math.max(0, lastMem + (Math.random() * 2 - 1)));
-        if (i === 1 && newMem > 90) newMem = 5; // drop simulated
-        state.userHistory.mem[i].shift();
-        state.userHistory.mem[i].push(newMem);
-      });
-      renderUserList();
-      renderSmallChart('userCpuCanvas', state.userHistory.cpu, 40);
-      renderSmallChart('userMemCanvas', state.userHistory.mem, 100);
-    }
-
-    function updateDomMetrics() {
-      const m = state.metrics;
-
-      // Elapsed Time
-      document.getElementById('valElapsed').innerText = m.elapsed.toFixed(1);
-      const fillElapPct = Math.min((m.elapsed / 60) * 100, 100);
-      document.getElementById('fillElapsed').style.width = `${fillElapPct}%`;
-
-      const cardElapsed = document.getElementById('cardElapsed');
-      const tagElapsed = document.getElementById('tagElapsed');
-      if (m.elapsed > m.elapsedThreshold) {
-        cardElapsed.classList.add('card-alert');
-        tagElapsed.className = 'metric-tag tag-danger';
-        tagElapsed.innerText = 'SPIKE DETECTED';
-      } else {
-        cardElapsed.classList.remove('card-alert');
-        tagElapsed.className = 'metric-tag tag-success';
-        tagElapsed.innerText = 'NORMAL';
-      }
-
-      // Cache Hit Ratio
-      document.getElementById('valCache').innerText = m.cacheHit.toFixed(1);
-      document.getElementById('fillCache').style.width = `${m.cacheHit}%`;
-      document.getElementById('valUnsavedCache').innerText = `${m.unsavedCache}%`;
-
-      // Remote Calls / sec
-      document.getElementById('valRemoteCalls').innerText = m.remoteCalls;
-      document.getElementById('fillRemoteCalls').style.width = `${Math.min((m.remoteCalls / 250) * 100, 100)}%`;
-      document.getElementById('subIoTime').innerText = `I/O Time/Call: ${m.ioTime} ms`;
-
-      // Active Sessions
-      document.getElementById('valSessions').innerText = m.sessions;
-      document.getElementById('valSessionsMax').innerText = `/ ${m.sessionsMax}`;
-      
-      const proPct = (m.breakdown.pro / m.sessionsMax) * 100;
-      const webPct = (m.breakdown.web / m.sessionsMax) * 100;
-      const apiPct = (m.breakdown.api / m.sessionsMax) * 100;
-      document.getElementById('segPro').style.width = `${proPct}%`;
-      document.getElementById('segWeb').style.width = `${webPct}%`;
-      document.getElementById('segApi').style.width = `${apiPct}%`;
-      document.getElementById('cntPro').innerText = m.breakdown.pro;
-      document.getElementById('cntWeb').innerText = m.breakdown.web;
-      document.getElementById('cntApi').innerText = m.breakdown.api;
-
-      // CPU
-      document.getElementById('valCpu').innerText = m.cpu.toFixed(1);
-      document.getElementById('fillCpu').style.width = `${m.cpu}%`;
-      const tagCpu = document.getElementById('tagCpu');
-      if (m.cpu > 85) {
-        tagCpu.className = 'metric-tag tag-danger';
-        tagCpu.innerText = 'HIGH LOAD';
-      } else {
-        tagCpu.className = 'metric-tag tag-success';
-        tagCpu.innerText = 'HEALTHY';
-      }
-
-      // RAM
-      document.getElementById('valRam').innerText = m.ramUsed.toFixed(1);
-      const ramPct = ((m.ramUsed / m.ramTotal) * 100).toFixed(1);
-      document.getElementById('fillRam').style.width = `${ramPct}%`;
-      document.getElementById('tagRamPercent').innerText = `${ramPct}%`;
-      document.getElementById('subRamCapacity').innerText = `Capacity: ${m.ramTotal} GB`;
-
-      // Disk
-      document.getElementById('valDisk').innerText = m.diskUsed;
-      const diskPct = ((m.diskUsed / m.diskTotal) * 100).toFixed(1);
-      document.getElementById('fillDisk').style.width = `${diskPct}%`;
-      document.getElementById('tagDiskPercent').innerText = `${diskPct}%`;
-      document.getElementById('subDiskFree').innerText = `Free: ${m.diskTotal - m.diskUsed} GB`;
-
-      // Network
-      document.getElementById('valNetwork').innerText = m.netTotal.toFixed(1);
-      document.getElementById('subNetIn').innerText = `In: ${m.netIn.toFixed(1)} MB/s`;
-      document.getElementById('subNetOut').innerText = `Out: ${m.netOut.toFixed(1)} MB/s`;
-
-      // Alert Banner
-      const banner = document.getElementById('alertBanner');
-      const alertTitle = document.getElementById('alertTitle');
-      const alertDesc = document.getElementById('alertDesc');
-      const btnAck = document.getElementById('btnAcknowledge');
-
-      if (state.alert.active) {
-        banner.classList.remove('resolved');
-        alertTitle.innerText = state.alert.title;
-        alertDesc.innerHTML = state.alert.desc;
-        btnAck.innerText = "ACKNOWLEDGE";
-      } else {
-        banner.classList.add('resolved');
-        alertTitle.innerHTML = `<span style="color:#34d399;">✓ SYSTEM ALL CLEAR: Optimal Latency &lt; 15 ms</span>`;
-        alertDesc.innerHTML = `All database engines and n8n pipelines operating within SLA parameters.`;
-        btnAck.innerText = "VIEW LOGS";
-      }
-
-      // Hosted Databases List
-      renderDatabaseList();
-    }
-
-    function renderDatabaseList() {
-      const dbListContainer = document.getElementById('databaseList');
-      document.getElementById('dbCountBadge').innerText = `${state.databases.length} Files`;
-
-      dbListContainer.innerHTML = state.databases.map(db => `
-        <div class="db-card-item" onclick="onDatabaseClick('${db.name}')" title="Click to inspect in FileMaker / n8n">
-          <div class="db-info-left">
-            <div class="db-icon-box">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-              </svg>
-            </div>
-            <div class="db-details">
-              <div class="db-filename">${db.name}</div>
-              <div class="db-meta">
-                <span>${db.size}</span>
-                <span>•</span>
-                <span>${db.clients} Clients</span>
-              </div>
-            </div>
-          </div>
-          <div class="db-status-badge ${db.status.toLowerCase().includes('backup') ? 'backup' : 'normal'}">
-            ${db.status}
-          </div>
-        </div>
-      `).join('');
-    }
-
-    /* ==========================================================================
-       4. SIMULATION & DYNAMIC TELEMETRY ENGINE
-       ========================================================================== */
-    function runSimulationStep() {
-      if (!state.simMode) return;
-
-      // Small jitter around realistic values
-      if (state.hasSpike) {
-        // High spike jitter
-        state.metrics.elapsed = +(48 + Math.random() * 5).toFixed(1);
-        state.metrics.cpu = +(62 + Math.random() * 6).toFixed(1);
-      } else {
-        // Normal smooth jitter
-        state.metrics.elapsed = +(13 + Math.random() * 4).toFixed(1);
-        state.metrics.cpu = +(24 + Math.random() * 5).toFixed(1);
-      }
-
-      state.metrics.remoteCalls = Math.round(165 + Math.random() * 15);
-      state.metrics.ioTime = +(0.7 + Math.random() * 0.3).toFixed(1);
-      state.metrics.netTotal = +(30 + Math.random() * 4).toFixed(1);
-      state.metrics.netIn = +(9 + Math.random() * 2).toFixed(1);
-      state.metrics.netOut = +(21 + Math.random() * 2).toFixed(1);
-
-      // Push to history
-      const now = new Date();
-      state.history.timestamps.shift();
-      state.history.timestamps.push(now.toTimeString().split(' ')[0]);
-
-      state.history.elapsed.shift();
-      state.history.elapsed.push(state.metrics.elapsed);
-
-      state.history.cpu.shift();
-      state.history.cpu.push(state.metrics.cpu);
-
-      state.history.sessions.shift();
-      state.history.sessions.push(state.metrics.sessions);
-
-      state.lastSync = now;
-      document.getElementById('lastSyncTime').innerText = now.toTimeString().split(' ')[0];
-
-      updateDomMetrics();
-      renderChart();
-      updateUserUsage();
-      renderSmallChart('userCpuCanvas', state.userHistory.cpu, 40);
-      renderSmallChart('userMemCanvas', state.userHistory.mem, 100);
-    }
-
-    // Main Clock & Simulation Loop
-    setInterval(() => {
-      const now = new Date();
-      const utcString = now.toUTCString().split(' ')[4] + " UTC";
-      document.getElementById('utcClock').innerText = utcString;
-
-      // Countdown poll timer
-      state.nextPollSec--;
-      if (state.nextPollSec <= 0) {
-        state.nextPollSec = 3;
-        runSimulationStep();
-      }
-      document.getElementById('nextPollCountdown').innerText = `${state.nextPollSec}s`;
-    }, 1000);
-
-    /* ==========================================================================
-       5. BI-DIRECTIONAL FILEMAKER & N8N BRIDGE
-       ========================================================================== */
-    
-    /**
-     * FileMaker calls this function via:
-     * "Perform JavaScript in Web Viewer [ Object Name: \"FMS_Viewer\"; Function Name: \"window.setFMSData\"; Parameters: $jsonPayload ]"
-     */
-    window.setFMSData = function(dataInput) {
-      try {
-        const payload = typeof dataInput === 'string' ? JSON.parse(dataInput) : dataInput;
-        console.log("FMS Dashboard received payload:", payload);
-
-        if (payload.serverHost) state.serverHost = payload.serverHost;
-        if (payload.elapsed !== undefined) state.metrics.elapsed = parseFloat(payload.elapsed);
-        if (payload.cacheHit !== undefined) state.metrics.cacheHit = parseFloat(payload.cacheHit);
-        if (payload.cpu !== undefined) state.metrics.cpu = parseFloat(payload.cpu);
-        if (payload.sessions !== undefined) state.metrics.sessions = parseInt(payload.sessions, 10);
-        if (payload.databases) state.databases = payload.databases;
-        if (payload.alert) {
-          state.alert.active = true;
-          state.alert.title = payload.alert.title || "ALERT DETECTED";
-          state.alert.desc = payload.alert.desc || "";
+            // Trigger Alert Banner if Elapsed Call Latency exceeds threshold
+            if (data.elapsedMs > 25) {
+                document.getElementById('alert-banner').classList.remove('hidden');
+                document.getElementById('alert-banner-title').innerText = `LATENCY SPIKE DETECTED: ${data.elapsedMs.toFixed(1)} ms / Call`;
+                document.getElementById('alert-banner-desc').innerText = `Heavy calculation or unindexed sort on field 'Spend' in procurement tables.`;
+            } else if (!window.customAlert) {
+                document.getElementById('alert-banner').classList.add('hidden');
+            }
         }
 
-        // Update history
-        const now = new Date();
-        state.history.timestamps.shift();
-        state.history.timestamps.push(now.toTimeString().split(' ')[0]);
-        state.history.elapsed.shift();
-        state.history.elapsed.push(state.metrics.elapsed);
-        state.history.cpu.shift();
-        state.history.cpu.push(state.metrics.cpu);
-        state.history.sessions.shift();
-        state.history.sessions.push(state.metrics.sessions);
+        // Global Push Update Function (For n8n / FileMaker Perform JavaScript)
+        window.updateMetrics = function(payload) {
+            try {
+                if (typeof payload === 'string') payload = JSON.parse(payload);
+                
+                const sKey = payload.serverName && payload.serverName.toLowerCase().includes('demo') ? 'demo' : 'hitachi';
+                const s = fmsServers[sKey];
 
-        state.lastSync = now;
-        document.getElementById('lastSyncTime').innerText = now.toTimeString().split(' ')[0];
+                if (payload.metrics) {
+                    if (payload.metrics.elapsedTimePerCallMs !== undefined) s.elapsedMs = payload.metrics.elapsedTimePerCallMs;
+                    if (payload.metrics.cacheHitPercent !== undefined) s.cacheHit = payload.metrics.cacheHitPercent;
+                    if (payload.metrics.remoteCallsPerSec !== undefined) s.remoteCalls = payload.metrics.remoteCallsPerSec;
+                    if (payload.metrics.cpuPercent !== undefined) s.cpuPct = payload.metrics.cpuPercent;
+                    if (payload.metrics.ramPercent !== undefined) s.ramGB = (payload.metrics.ramPercent / 100) * s.ramTotalGB;
+                }
 
-        updateDomMetrics();
-        renderChart();
-        showToast("Telemetry synced from FileMaker / n8n");
-        return JSON.stringify({ status: "success", timestamp: Date.now() });
-      } catch (err) {
-        console.error("Error parsing FMS data:", err);
-        showToast("Error updating telemetry: " + err.message);
-        return JSON.stringify({ status: "error", error: err.message });
-      }
-    };
+                if (payload.clients) {
+                    if (payload.clients.total !== undefined) s.usersTotal = payload.clients.total;
+                    if (payload.clients.proGo !== undefined) s.usersPro = payload.clients.proGo;
+                    if (payload.clients.webDirect !== undefined) s.usersWeb = payload.clients.webDirect;
+                    if (payload.clients.dataApi !== undefined) s.usersApi = payload.clients.dataApi;
+                }
 
-    /**
-     * Sends action back to FileMaker script or n8n webhook
-     */
-    function sendActionToFileMaker(actionName, payload = {}) {
-      const fullPayload = {
-        action: actionName,
-        env: state.currentEnv,
-        timestamp: new Date().toISOString(),
-        ...payload
-      };
+                if (payload.logs && Array.isArray(payload.logs)) {
+                    payload.logs.forEach(log => addLogEvent(log.type || 'INFO', log.message));
+                }
 
-      // Check if inside FileMaker WebViewer
-      if (window.FileMaker && typeof window.FileMaker.PerformScriptWithOption === 'function') {
-        window.FileMaker.PerformScriptWithOption(
-          "FMS_HandleDashboardAction", 
-          JSON.stringify(fullPayload), 
-          0
-        );
-        showToast(`FileMaker script triggered: ${actionName}`);
-      } else {
-        console.log("[DEV / BROWSER] FileMaker.PerformScript simulated:", fullPayload);
-        showToast(`[Simulated FM Script] ${actionName}`);
-      }
+                addLogEvent('PUSH', `Received telemetry payload via updateMetrics() from ${s.name}`);
+                renderDashboard();
+            } catch (e) {
+                addLogEvent('ERROR', `Failed to parse payload in updateMetrics(): ${e.message}`);
+            }
+        };
 
-      // Optional: Post to n8n webhook if configured
-      if (state.n8nWebhookUrl) {
-        fetch(state.n8nWebhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(fullPayload)
-        })
-        .then(res => showToast(`n8n Webhook replied: ${res.status}`))
-        .catch(err => console.error("n8n Webhook error:", err));
-      }
-    }
+        // Live Simulation Loop
+        function startSimLoop() {
+            setInterval(() => {
+                if (!simulationActive) return;
 
-    /* ==========================================================================
-       6. USER ACTIONS & CONTROLS
-       ========================================================================== */
-    function acknowledgeAlert() {
-      if (state.alert.active) {
-        state.alert.active = false;
-        state.hasSpike = false;
-        state.metrics.elapsed = 14.8;
-        state.metrics.cpu = 28.2;
-        updateDomMetrics();
-        renderChart();
-        sendActionToFileMaker("ACKNOWLEDGE_LATENCY_SPIKE", {
-          resolvedLatency: 14.8,
-          message: "Latency spike acknowledged by NOC operator"
-        });
-        showToast("Alert Acknowledged & Resolved");
-      } else {
-        showToast("Viewing event history logs...");
-        sendActionToFileMaker("VIEW_EVENT_LOGS");
-      }
-    }
+                const s = fmsServers[currentServerKey];
+                
+                // Simulate periodic performance spikes (e.g. user sorting spend table)
+                if (Math.random() < 0.15) {
+                    s.elapsedMs = Math.random() * 45 + 15;
+                    s.cpuPct = Math.random() * 35 + 45;
+                    addLogEvent('WARNING', `Elapsed time spiked to ${s.elapsedMs.toFixed(1)} ms during sorting operation on table 'Spend_Log'.`);
+                } else {
+                    s.elapsedMs = Math.max(1.2, s.elapsedMs + (Math.random() - 0.52) * 2);
+                    s.cpuPct = Math.max(10, Math.min(90, s.cpuPct + (Math.random() - 0.5) * 4));
+                }
 
-    function simulateSpike() {
-      state.hasSpike = true;
-      state.alert.active = true;
-      state.alert.title = "LATENCY SPIKE DETECTED: 50.2 ms / Call";
-      state.alert.desc = "Heavy calculation or unindexed sort on field <mark>'Spend'</mark> in procurement tables.";
-      state.metrics.elapsed = 50.2;
-      state.metrics.cpu = 65.4;
-      updateDomMetrics();
-      renderChart();
-      updateUserUsage();
-      sendActionToFileMaker("SIMULATE_SPIKE_TRIGGERED");
-      showToast("Triggered simulated latency spike");
-    }
+                s.remoteCalls = Math.floor(Math.max(20, s.remoteCalls + (Math.random() - 0.5) * 20));
 
-    function toggleSimMode() {
-      state.simMode = !state.simMode;
-      const btn = document.getElementById('btnSimMode');
-      const text = document.getElementById('simModeText');
-      if (state.simMode) {
-        btn.classList.remove('off');
-        text.innerText = "ON";
-        showToast("Simulation mode: ACTIVE");
-      } else {
-        btn.classList.add('off');
-        text.innerText = "OFF";
-        showToast("Simulation mode: PAUSED (Waiting for live FM/n8n data)");
-      }
-    }
+                // Chart update
+                const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                chartLabels.push(timeStr);
+                chartLabels.shift();
 
-    function triggerManualSync() {
-      showToast("Polling FileMaker Admin API & n8n...");
-      sendActionToFileMaker("POLL_FMS_TELEMETRY");
-      runSimulationStep();
-    }
+                chartElapsedData.push(s.elapsedMs);
+                chartElapsedData.shift();
 
-    function switchEnv(envName) {
-      state.currentEnv = envName;
-      document.querySelectorAll('.env-pill').forEach(pill => {
-        if (pill.innerText === envName) {
-          pill.className = "env-pill active";
-        } else {
-          pill.className = "env-pill inactive";
-        }
-      });
-      if (envName === 'Demo Env') {
-        document.getElementById('serverHostDisplay').innerText = "https://demo.fms-cluster.internal";
-      } else {
-        document.getElementById('serverHostDisplay').innerText = state.serverHost;
-      }
-      showToast(`Switched active environment to: ${envName}`);
-      sendActionToFileMaker("SWITCH_ENVIRONMENT", { environment: envName });
-    }
+                chartCpuData.push(s.cpuPct);
+                chartCpuData.shift();
 
-    function toggleSeries(seriesName) {
-      state.visibleSeries[seriesName] = !state.visibleSeries[seriesName];
-      renderChart();
-      showToast(`Toggled ${seriesName} chart series: ${state.visibleSeries[seriesName] ? 'Visible' : 'Hidden'}`);
-    }
+                chartUsersData.push(s.usersTotal);
+                chartUsersData.shift();
 
-    function onDatabaseClick(dbName) {
-      sendActionToFileMaker("INSPECT_DATABASE", { filename: dbName });
-      showToast(`Selected database: ${dbName}`);
-    }
-
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      } else {
-        if (document.exitFullscreen) document.exitFullscreen();
-      }
-    }
-
-    function exportDataJson() {
-      const exportObj = {
-        meta: {
-          serverHost: state.serverHost,
-          environment: state.currentEnv,
-          exportedAt: new Date().toISOString()
-        },
-        metrics: state.metrics,
-        databases: state.databases,
-        history: state.history
-      };
-      const jsonStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", jsonStr);
-      downloadAnchor.setAttribute("download", `FMS_Telemetry_${Date.now()}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-      showToast("Telemetry JSON exported");
-    }
-
-    // Modal controls
-    function openIntegrationModal() {
-      document.getElementById('integrationModal').classList.add('active');
-    }
-    function closeIntegrationModal() {
-      document.getElementById('integrationModal').classList.remove('active');
-    }
-    function copyIntegrationCode() {
-      const code = `Perform JavaScript in Web Viewer [ Object Name: "FMS_Viewer" ; Function Name: "window.setFMSData" ; Parameters: JSONSetElement ( "{}" ; [ "elapsed" ; 50.2 ; JSONNumber ] ; [ "cpu" ; 65.4 ; JSONNumber ] ; [ "sessions" ; 38 ; JSONNumber ] ) ]`;
-      navigator.clipboard.writeText(code).then(() => {
-        showToast("FileMaker script step copied to clipboard!");
-      });
-    }
-
-    // Toast helper
-    function showToast(msg) {
-      const t = document.getElementById('toastNotice');
-      t.innerText = msg;
-      t.classList.add('show');
-      setTimeout(() => {
-        t.classList.remove('show');
-      }, 2500);
-    }
-
-    /* ==========================================================================
-       7. REAL-TIME N8N WEBHOOK POLLING & URL PARAMS
-       ========================================================================== */
-    async function pollLiveN8nWebhook() {
-      if (!state.n8nWebhookUrl) return;
-      try {
-        const res = await fetch(state.n8nWebhookUrl, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
-        });
-        if (res.ok) {
-          const liveData = await res.json();
-          window.setFMSData(liveData);
-          if (state.simMode) {
-            state.simMode = false;
-            document.getElementById('btnSimMode').classList.add('off');
-            document.getElementById('simModeText').innerText = "OFF (Live)";
-          }
-          document.getElementById('bridgeStatus').innerText = "n8n Live Webhook 200 OK";
-          document.getElementById('bridgeStatus').style.color = "#34d399";
-        } else {
-          document.getElementById('bridgeStatus').innerText = `n8n HTTP ${res.status}`;
-          document.getElementById('bridgeStatus').style.color = "#fbbf24";
-        }
-      } catch (err) {
-        console.warn("Live webhook poll error:", err);
-        document.getElementById('bridgeStatus').innerText = "n8n Webhook Offline";
-        document.getElementById('bridgeStatus').style.color = "#f87171";
-      }
-    }
-
-    function initUrlParamsAndStorage() {
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const webhookParam = urlParams.get('webhook');
-        const hostParam = urlParams.get('host');
-        const simParam = urlParams.get('sim');
-
-        const savedWebhook = localStorage.getItem('fms_n8n_webhook');
-        if (webhookParam) {
-          state.n8nWebhookUrl = webhookParam;
-          localStorage.setItem('fms_n8n_webhook', webhookParam);
-        } else if (savedWebhook) {
-          state.n8nWebhookUrl = savedWebhook;
+                chartInstance.update('none');
+                renderDashboard();
+            }, 3000);
         }
 
-        if (state.n8nWebhookUrl) {
-          document.getElementById('n8nWebhookInput').value = state.n8nWebhookUrl;
-          document.getElementById('bridgeStatus').innerText = "n8n Poller Active";
-          // Trigger immediate fetch
-          pollLiveN8nWebhook();
-          // Poll every 5 seconds
-          setInterval(pollLiveN8nWebhook, 5000);
+        // Stale Data Check (Warning if no update in >30s)
+        setInterval(() => {
+            if (Date.now() - lastUpdateTime > 30000 && !simulationActive) {
+                document.getElementById('stale-badge').classList.remove('hidden');
+            }
+        }, 5000);
+
+        function addLogEvent(type, message) {
+            const logBox = document.getElementById('log-console');
+            const time = new Date().toLocaleTimeString();
+            let color = 'text-cyan-400';
+            if (type === 'WARNING' || type === 'SLOW_QUERY') color = 'text-amber-400';
+            if (type === 'ERROR') color = 'text-rose-400';
+            if (type === 'PUSH') color = 'text-emerald-400';
+
+            const item = document.createElement('div');
+            item.className = 'flex items-start gap-2 border-b border-slate-900/80 pb-1';
+            item.innerHTML = `
+                <span class="text-slate-500 shrink-0">[${time}]</span>
+                <span class="${color} font-extrabold shrink-0">[${type}]</span>
+                <span class="text-slate-300 font-mono truncate">${message}</span>
+            `;
+            logBox.prepend(item);
         }
 
-        if (hostParam) {
-          state.serverHost = hostParam;
-          document.getElementById('serverHostDisplay').innerText = hostParam;
+        function clearConsoleLogs() {
+            document.getElementById('log-console').innerHTML = '';
+            addLogEvent('INFO', 'Console log cleared.');
         }
 
-        if (simParam === 'false' || simParam === 'off' || state.n8nWebhookUrl) {
-          state.simMode = false;
-          const btn = document.getElementById('btnSimMode');
-          btn.classList.add('off');
-          document.getElementById('simModeText').innerText = "OFF (Live)";
+        function switchServer(key) {
+            currentServerKey = key;
+            const bH = document.getElementById('btn-hitachi');
+            const bD = document.getElementById('btn-demo');
+
+            if (key === 'hitachi') {
+                bH.className = "px-4 py-2 rounded-lg text-xs font-extrabold transition-all bg-cyan-600 text-white shadow-lg";
+                bD.className = "px-4 py-2 rounded-lg text-xs font-extrabold text-slate-400 hover:text-white transition-all";
+            } else {
+                bD.className = "px-4 py-2 rounded-lg text-xs font-extrabold transition-all bg-cyan-600 text-white shadow-lg";
+                bH.className = "px-4 py-2 rounded-lg text-xs font-extrabold text-slate-400 hover:text-white transition-all";
+            }
+            addLogEvent('INFO', `Switched monitoring view to ${fmsServers[key].name}`);
+            renderDashboard();
         }
-      } catch (e) {
-        console.error("Storage / URL init error:", e);
-      }
-    }
 
-    function saveSettings() {
-      const val = document.getElementById('n8nWebhookInput').value.trim();
-      state.n8nWebhookUrl = val;
-      if (val) {
-        localStorage.setItem('fms_n8n_webhook', val);
-        pollLiveN8nWebhook();
-        if (state.simMode) toggleSimMode();
-      } else {
-        localStorage.removeItem('fms_n8n_webhook');
-      }
-      closeIntegrationModal();
-      showToast("Integration settings saved!");
-    }
+        function toggleSimulation() {
+            simulationActive = !simulationActive;
+            const txt = document.getElementById('sim-status-text');
+            const btn = document.getElementById('sim-toggle-btn');
+            if (simulationActive) {
+                txt.innerText = "Sim Mode: ON";
+                btn.className = "px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-amber-400 transition flex items-center gap-2";
+            } else {
+                txt.innerText = "Sim Mode: OFF (Live Only)";
+                btn.className = "px-3 py-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-xs font-bold text-emerald-400 transition flex items-center gap-2";
+            }
+        }
 
-    // Initial paint
-    window.addEventListener('DOMContentLoaded', () => {
-      initUrlParamsAndStorage();
-      resizeCanvas();
-      updateDomMetrics();
-      updateUserUsage();
-    });
-  </script>
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+
+        function dismissAlert() {
+            window.customAlert = false;
+            document.getElementById('alert-banner').classList.add('hidden');
+        }
+
+        // Live Clock
+        setInterval(() => {
+            document.getElementById('clock-display').innerText = new Date().toLocaleTimeString([], { hour12: false }) + ' UTC';
+        }, 1000);
+
+        window.onload = function() {
+            initFmsChart();
+            renderDashboard();
+            startSimLoop();
+
+            // Seed Initial Logs
+            addLogEvent('INFO', 'FMS Ops Center Initialized.');
+            addLogEvent('INFO', 'Target Server: https://hitachi.master-bom.com');
+            addLogEvent('WARNING', 'Elapsed Time per Call threshold set to 20 ms.');
+            addLogEvent('INFO', 'n8n & FileMaker WebViewer update bridge active on window.updateMetrics()');
+        };
+    </script>
 </body>
 </html>
